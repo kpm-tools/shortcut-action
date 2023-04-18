@@ -1,9 +1,51 @@
 {
   "validEvents": [
     {
-      "events": [{"eventName": "pull_request", "eventTypes": ["opened"]}],
-      "branches": ["main"],
+      "events": [
+        {
+          "eventName": "pull_request",
+          "eventTypes": ["opened", "closed"]
+        }
+      ],
+      "branches": ["main", "staging"],
       "columnId": "123456789"
+    },
+    {
+      "events": [
+        {
+          "eventName": "pull_request"
+        }
+      ],
+      "branches": ["feature/*"],
+      "columnId": "123456789"
+    },
+    {
+      "events": [
+        {
+          "eventName": "pull_request",
+          "eventTypes": ["opened"]
+        }
+      ],
+      "branches": ["staging"],
+      "columnId": "2123456789"
+    },
+    {
+      "events": [
+        {
+          "eventName": "push"
+        }
+      ],
+      "branches": ["main"],
+      "columnId": "323456789"
+    },
+    {
+      "events": [
+        {
+          "eventName": "push"
+        }
+      ],
+      "branches": ["staging"],
+      "columnId": "423456789"
     }
   ]
 }

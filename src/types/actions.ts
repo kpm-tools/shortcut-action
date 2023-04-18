@@ -1,34 +1,24 @@
 export type EventName = 'push' | 'pull_request'
 export type EventType = 'opened' | 'closed' | 'reopened' | 'synchronize'
+export type Branch = string
+export type ColumnId = string
 
 export interface GitHubActionEvent {
   eventName: EventName
-  branch: string
-  eventType?: EventType | undefined
-}
-
-export interface GitHubPushEvent extends GitHubActionEvent {
-  eventName: 'push'
-}
-
-export interface GitHubPullRequestEvent extends GitHubActionEvent {
-  eventName: 'pull_request'
-}
-
-export interface ConfigFilePushEventAction {
-  eventName: 'push'
-}
-
-export interface ConfigFilePullRequestAction {
-  eventName: 'pull_request'
-  eventTypes?: (EventType | undefined)[]
+  branch: Branch
+  eventType?: EventType
 }
 
 export interface ConfigFileEvent {
-  events: ConfigFilePushEventAction[] | ConfigFilePullRequestAction[]
-  branche: string[]
-  columnId: string[]
+  eventName: EventName
+  eventTypes?: EventType[]
+}
+
+export interface ConfigFileItem {
+  events: ConfigFileEvent[]
+  branches: Branch[]
+  columnId: ColumnId
 }
 export interface ConfigFile {
-  validEvents: ConfigFileEvent[]
+  validEvents: ConfigFileItem[]
 }
