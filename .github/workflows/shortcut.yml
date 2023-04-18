@@ -15,4 +15,4 @@ jobs:
         with:
           SHORTCUT_TOKEN: ${{ secrets.SHORTCUT_TOKEN}}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          configuration_file: ../../examples/configuration-example.json
+          configuration_file: ../../examples/configuration_example.json
