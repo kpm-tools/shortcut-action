@@ -1,7 +1,6 @@
-import * as os from 'os'
+import * as github from '@actions/github'
 import {
   ConfigFile,
-  ConfigFileItem,
   GitHubActionEvent,
   EventType,
   EventName,
@@ -11,7 +10,18 @@ import {
 export const getColumnIdForAction = (
   githubActionEvent: GitHubActionEvent,
   configFile: ConfigFile
-): string | null => {
+): number | undefined => {
+  const isRegexMatch = (branches: string[], currentBranch: string): boolean => {
+    for (const branch of branches) {
+      const regexString = `${branch}`
+
+      if (currentBranch.match(regexString)) {
+        return true
+      }
+    }
+    return false
+  }
+
   for (const validEvent of configFile.validEvents) {
     const matchingEvent: boolean = validEvent.events.some(
       event =>
@@ -21,13 +31,14 @@ export const getColumnIdForAction = (
           event.eventTypes.includes(githubActionEvent.eventType))
     )
     if (
-      matchingEvent &&
-      validEvent.branches.includes(githubActionEvent.branch)
+      (matchingEvent &&
+        validEvent.branches.includes(githubActionEvent.branch)) ||
+      isRegexMatch(validEvent.branches, githubActionEvent.branch)
     ) {
-      return validEvent.columnId
+      return parseInt(validEvent.columnId)
     }
   }
-  return null
+  return undefined
 }
 
 export const validateConfigFile = (configFile: ConfigFile): void => {
@@ -54,7 +65,7 @@ export const validateConfigFile = (configFile: ConfigFile): void => {
     const otherEventsArray = [...configFile.validEvents]
     otherEventsArray.splice(index, 1)
 
-    const matchingName = otherEventsArray.filter(otherEvents => {
+    const matchingName = otherEventsArray.some(otherEvents => {
       return validEvent.events.some(event => {
         return otherEvents.events.some(otherEvent => {
           return doMatchingValuesExist<EventName>({
@@ -65,7 +76,7 @@ export const validateConfigFile = (configFile: ConfigFile): void => {
       })
     })
 
-    const matchingEventTypes = otherEventsArray.filter(otherEvents => {
+    const matchingEventTypes = otherEventsArray.some(otherEvents => {
       return otherEvents.events.some(otherEvent => {
         return validEvent.events.some(event => {
           return (
@@ -80,44 +91,40 @@ export const validateConfigFile = (configFile: ConfigFile): void => {
       })
     })
 
-    const matchingBranches = otherEventsArray.filter(otherEvents => {
+    const matchingBranches = otherEventsArray.some(otherEvents => {
       return doMatchingValuesExist<Branch>({
         sourceArray: validEvent.branches,
         matcherArray: otherEvents.branches
       })
     })
 
-    const matchingColumnId = otherEventsArray.filter(otherEvents => {
+    const matchingColumnId = otherEventsArray.some(otherEvents => {
       return otherEvents.columnId === validEvent.columnId
     })
 
     const matched = areAllMatchesTruthy([
-      !!matchingName,
-      !!matchingEventTypes,
-      !!matchingBranches,
-      !!matchingColumnId
+      matchingName,
+      matchingEventTypes,
+      matchingBranches,
+      matchingColumnId
     ])
 
-    const errorFormatter = (matchingArray: ConfigFileItem[]): string => {
-      return matchingArray
-        .map(matchingItem => {
-          return JSON.stringify(matchingItem)
-        })
-        .join(os.EOL)
-    }
-
-    if (matched) {
-      const errorMesssageContent =
-        matchingName ||
-        matchingEventTypes ||
-        matchingBranches ||
-        matchingColumnId
-
-      const errorMessage = `Duplicate config found:${os.EOL}${errorFormatter(
-        errorMesssageContent
-      )}`
-
-      throw new Error(errorMessage)
-    }
+    return matched
   })
+
+  if (matchingEvents.length > 0) {
+    throw new Error(
+      JSON.stringify(matchingEvents) +
+        "Duplicative config found. Make sure that your actions don't apply on the same event and the same columnId as another one"
+    )
+  }
+}
+
+export const getEventType = (eventName: EventName): EventType | undefined => {
+  if (eventName === 'push') return undefined
+
+  if (eventName === 'pull_request_review' || eventName === 'pull_request') {
+    const pullRequestReviewType = github.context.action as EventType
+    return pullRequestReviewType
+  }
 }

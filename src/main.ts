@@ -4,7 +4,15 @@ import {Octokit} from '@octokit/action'
 import {ShortcutClient} from '@useshortcut/client'
 
 import {getShortcutIdFromBranchName} from './helpers/shortcut'
-import {validateConfigFile, getColumnIdForAction} from './helpers/github-events'
+import {
+  validateConfigFile,
+  getColumnIdForAction,
+  getEventType
+} from './helpers/github-events'
+
+import path from 'path'
+import fs from 'fs'
+import util from 'util'
 
 import * as dotenv from 'dotenv'
 import {
@@ -15,6 +23,7 @@ import {
   Branch
 } from './types/actions'
 
+const readFileAsync = util.promisify(fs.readFile)
 dotenv.config()
 
 // TODO: TEMPORARY, DELETE THIS
@@ -23,13 +32,20 @@ const DEFAULT_CONFIGURATION_FILE = '.github/shortcut_configuration.json'
 
 const [owner, repo] = process.env.GITHUB_REPOSITORY?.split('/') || []
 
-const octokit = new Octokit()
-
-const getConfigurationFile = async (
+const getConfiguration = async (
   repoConfigPath: string
 ): Promise<ConfigFile> => {
+  if (process.env.CONFIGURATION_FILE) {
+    const buffer = await readFileAsync(
+      path.join(__dirname, process.env.CONFIGURATION_FILE)
+    )
+    const json = JSON.parse(buffer.toString())
+    return json
+  }
+
   if (!repoConfigPath) throw new Error('No configuration path was found')
 
+  const octokit = new Octokit()
   const response = await octokit.repos.getContent({
     owner,
     repo,
@@ -46,26 +62,20 @@ const getConfigurationFile = async (
 
 async function run(): Promise<void> {
   try {
-    const SHORTCUT_TOKEN =
-      core.getInput('SHORTCUT_TOKEN') || process.env.SHORTCUT_TOKEN
+    const SHORTCUT_TOKEN = core.getInput('SHORTCUT_TOKEN')
+    const GITHUB_TOKEN = core.getInput('GITHUB_TOKEN')
 
-    const GITHUB_TOKEN =
-      core.getInput('GITHUB_TOKEN') || process.env.GITHUB_TOKEN
-
-    const configuration_file =
+    const CONFIGURATION_FILE =
       core.getInput('configuration_file') || DEFAULT_CONFIGURATION_FILE
 
-    const CONFIGURATION: ConfigFile = await getConfigurationFile(
-      configuration_file
-    )
+    if (!CONFIGURATION_FILE) throw new Error('configuration_file is required.')
 
     if (!SHORTCUT_TOKEN) throw new Error('SHORTCUT_TOKEN is required.')
     if (!GITHUB_TOKEN) throw new Error('GITHUB_TOKEN is required.')
-    if (!configuration_file) throw new Error('configuration_file is required.')
-    if (!CONFIGURATION) throw new Error('No configuration  was found')
 
-    // const buffer = await readFileAsync(path.join(__dirname, configuration_file))
-    // const json = JSON.parse(buffer.toString())
+    const CONFIGURATION: ConfigFile = await getConfiguration(CONFIGURATION_FILE)
+
+    if (!CONFIGURATION) throw new Error('No configuration  was found')
 
     validateConfigFile(CONFIGURATION)
 
@@ -73,15 +83,11 @@ async function run(): Promise<void> {
       'GITHUB_EVENT_NAME'
     ) as EventName
 
-    const BRANCH: Branch = core.getInput('GITHUB_REF_NAME')
-    const BRANCH_REF: string = core.getInput('GITHUB_REF_TYPE')
+    const EVENT_TYPE: EventType | undefined = getEventType(EVENT_NAME)
 
-    if (
-      EVENT_NAME !== ('push' as EventName) ||
-      EVENT_NAME !== ('pull_request' as EventName)
-    ) {
-      throw new Error('Unsupported action trigger')
-    }
+    const BRANCH: Branch = core.getInput('GITHUB_REF_NAME')
+
+    const BRANCH_REF: string = core.getInput('GITHUB_REF_TYPE')
 
     if (!BRANCH || BRANCH_REF === 'tag') {
       throw new Error('Branch not found, or tag was used')
@@ -92,22 +98,22 @@ async function run(): Promise<void> {
       branch: BRANCH
     }
 
+    if (EVENT_TYPE) {
+      githubActionEvent.eventType = EVENT_TYPE
+    }
+
     const columnId = getColumnIdForAction(githubActionEvent, CONFIGURATION)
 
-    const shortcutStoryId = getShortcutIdFromBranchName(
+    const shortcutStoryIdFromBranch = getShortcutIdFromBranchName(
       githubActionEvent.branch,
       DEFAULT_BRANCH_PATTERN
     )
 
-    console.log(columnId, shortcutStoryId)
+    const shortcut = new ShortcutClient(SHORTCUT_TOKEN)
 
-    // const shortcut = new ShortcutClient(SHORTCUT_TOKEN)
-    //
-    // shortcut
-    //   .getCurrentMemberInfo()
-    //   .then(response => console.log(response?.data))
-    //
-    // shortcut.listProjects().then(response => console.log(response?.data))
+    shortcut.updateStory(shortcutStoryIdFromBranch, {
+      workflow_state_id: columnId
+    })
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }

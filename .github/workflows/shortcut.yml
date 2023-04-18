@@ -1,6 +1,7 @@
 on:
   push:
   pull_request:
+  pull_request_review:
 
 jobs:
   shortcut:
@@ -12,6 +13,6 @@ jobs:
       - name: Shortcut
         uses: ./
         id: shorcut
-        with:
+        env:
           SHORTCUT_TOKEN: ${{ secrets.SHORTCUT_TOKEN}}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
