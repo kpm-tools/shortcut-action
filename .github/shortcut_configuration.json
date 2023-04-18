@@ -7,27 +7,8 @@
           "eventTypes": ["opened", "closed"]
         }
       ],
-      "branches": ["main", "staging"],
+      "branches": ["."],
       "columnId": "123456789"
-    },
-    {
-      "events": [
-        {
-          "eventName": "pull_request"
-        }
-      ],
-      "branches": ["feature/*"],
-      "columnId": "123456789"
-    },
-    {
-      "events": [
-        {
-          "eventName": "pull_request",
-          "eventTypes": ["opened"]
-        }
-      ],
-      "branches": ["staging"],
-      "columnId": "2123456789"
     },
     {
       "events": [
