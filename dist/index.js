@@ -199,9 +199,10 @@ const getConfigurationFile = (repoConfigPath) => __awaiter(void 0, void 0, void 
         path: repoConfigPath,
         ref: github.context.sha
     });
+    return JSON.parse(
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    return Buffer.from(response.data.content, response.data.encoding).toString();
+    Buffer.from(response.data.content, response.data.encoding).toString());
 });
 function run() {
     return __awaiter(this, void 0, void 0, function* () {

@@ -37,9 +37,11 @@ const getConfigurationFile = async (
     ref: github.context.sha
   })
 
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  return Buffer.from(response.data.content, response.data.encoding).toString()
+  return JSON.parse(
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    Buffer.from(response.data.content, response.data.encoding).toString()
+  )
 }
 
 async function run(): Promise<void> {
