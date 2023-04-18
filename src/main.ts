@@ -3,17 +3,18 @@ import * as github from '@actions/github'
 import {Octokit} from '@octokit/action'
 import {ShortcutClient} from '@useshortcut/client'
 
-import path from 'path'
-import fs from 'fs'
-import util from 'util'
-
 import {getShortcutIdFromBranchName} from './helpers/shortcut'
 import {validateConfigFile, getColumnIdForAction} from './helpers/github-events'
 
 import * as dotenv from 'dotenv'
-import {GitHubActionEvent, EventName, EventType, Branch} from './types/actions'
+import {
+  GitHubActionEvent,
+  ConfigFile,
+  EventName,
+  EventType,
+  Branch
+} from './types/actions'
 
-const readFileAsync = util.promisify(fs.readFile)
 dotenv.config()
 
 // TODO: TEMPORARY, DELETE THIS
@@ -26,7 +27,7 @@ const octokit = new Octokit()
 
 const getConfigurationFile = async (
   repoConfigPath: string
-): Promise<string> => {
+): Promise<ConfigFile> => {
   if (!repoConfigPath) throw new Error('No configuration path was found')
 
   const response = await octokit.repos.getContent({
@@ -35,14 +36,6 @@ const getConfigurationFile = async (
     path: repoConfigPath,
     ref: github.context.sha
   })
-
-  console.log(response)
-
-  console.log(
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    Buffer.from(response.data.content, response.data.encoding).toString()
-  )
 
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
@@ -60,18 +53,19 @@ async function run(): Promise<void> {
     const configuration_file =
       core.getInput('configuration_file') || DEFAULT_CONFIGURATION_FILE
 
-    const CONFIGURATION_FILE =
-      getConfigurationFile(configuration_file) || process.env.CONGIGURATION_FILE
+    const CONFIGURATION: ConfigFile = await getConfigurationFile(
+      configuration_file
+    )
 
     if (!SHORTCUT_TOKEN) throw new Error('SHORTCUT_TOKEN is required.')
     if (!GITHUB_TOKEN) throw new Error('GITHUB_TOKEN is required.')
     if (!configuration_file) throw new Error('configuration_file is required.')
-    if (!CONFIGURATION_FILE) throw new Error('No configuration file was found')
+    if (!CONFIGURATION) throw new Error('No configuration  was found')
 
-    const buffer = await readFileAsync(path.join(__dirname, configuration_file))
-    const json = JSON.parse(buffer.toString())
+    // const buffer = await readFileAsync(path.join(__dirname, configuration_file))
+    // const json = JSON.parse(buffer.toString())
 
-    validateConfigFile(json)
+    validateConfigFile(CONFIGURATION)
 
     const EVENT_NAME: EventName = core.getInput(
       'GITHUB_EVENT_NAME'
@@ -96,7 +90,7 @@ async function run(): Promise<void> {
       branch: BRANCH
     }
 
-    const columnId = getColumnIdForAction(githubActionEvent, json)
+    const columnId = getColumnIdForAction(githubActionEvent, CONFIGURATION)
 
     const shortcutStoryId = getShortcutIdFromBranchName(
       githubActionEvent.branch,

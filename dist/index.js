@@ -176,21 +176,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const action_1 = __nccwpck_require__(1231);
-const path_1 = __importDefault(__nccwpck_require__(1017));
-const fs_1 = __importDefault(__nccwpck_require__(7147));
-const util_1 = __importDefault(__nccwpck_require__(3837));
 const shortcut_1 = __nccwpck_require__(9250);
 const github_events_1 = __nccwpck_require__(3020);
 const dotenv = __importStar(__nccwpck_require__(2437));
-const readFileAsync = util_1.default.promisify(fs_1.default.readFile);
 dotenv.config();
 // TODO: TEMPORARY, DELETE THIS
 const DEFAULT_BRANCH_PATTERN = /sc-(\d+)/;
@@ -206,11 +199,6 @@ const getConfigurationFile = (repoConfigPath) => __awaiter(void 0, void 0, void 
         path: repoConfigPath,
         ref: github.context.sha
     });
-    console.log(response);
-    console.log(
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    Buffer.from(response.data.content, response.data.encoding).toString());
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     return Buffer.from(response.data.content, response.data.encoding).toString();
@@ -221,18 +209,18 @@ function run() {
             const SHORTCUT_TOKEN = core.getInput('SHORTCUT_TOKEN') || process.env.SHORTCUT_TOKEN;
             const GITHUB_TOKEN = core.getInput('GITHUB_TOKEN') || process.env.GITHUB_TOKEN;
             const configuration_file = core.getInput('configuration_file') || DEFAULT_CONFIGURATION_FILE;
-            const CONFIGURATION_FILE = getConfigurationFile(configuration_file) || process.env.CONGIGURATION_FILE;
+            const CONFIGURATION = yield getConfigurationFile(configuration_file);
             if (!SHORTCUT_TOKEN)
                 throw new Error('SHORTCUT_TOKEN is required.');
             if (!GITHUB_TOKEN)
                 throw new Error('GITHUB_TOKEN is required.');
             if (!configuration_file)
                 throw new Error('configuration_file is required.');
-            if (!CONFIGURATION_FILE)
-                throw new Error('No configuration file was found');
-            const buffer = yield readFileAsync(path_1.default.join(__dirname, configuration_file));
-            const json = JSON.parse(buffer.toString());
-            (0, github_events_1.validateConfigFile)(json);
+            if (!CONFIGURATION)
+                throw new Error('No configuration  was found');
+            // const buffer = await readFileAsync(path.join(__dirname, configuration_file))
+            // const json = JSON.parse(buffer.toString())
+            (0, github_events_1.validateConfigFile)(CONFIGURATION);
             const EVENT_NAME = core.getInput('GITHUB_EVENT_NAME');
             const BRANCH = core.getInput('GITHUB_REF_NAME');
             const BRANCH_REF = core.getInput('GITHUB_REF_TYPE');
@@ -247,7 +235,7 @@ function run() {
                 eventName: EVENT_NAME,
                 branch: BRANCH
             };
-            const columnId = (0, github_events_1.getColumnIdForAction)(githubActionEvent, json);
+            const columnId = (0, github_events_1.getColumnIdForAction)(githubActionEvent, CONFIGURATION);
             const shortcutStoryId = (0, shortcut_1.getShortcutIdFromBranchName)(githubActionEvent.branch, DEFAULT_BRANCH_PATTERN);
             console.log(columnId, shortcutStoryId);
             // const shortcut = new ShortcutClient(SHORTCUT_TOKEN)
