@@ -15,4 +15,3 @@ jobs:
         with:
           SHORTCUT_TOKEN: ${{ secrets.SHORTCUT_TOKEN}}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          configuration_file: ../shortcut_configuration.json

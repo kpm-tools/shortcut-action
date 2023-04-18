@@ -16,13 +16,12 @@ const readFileAsync = util.promisify(fs.readFile)
 dotenv.config()
 
 // TODO: TEMPORARY, DELETE THIS
-const GITHUB_BRANCH = 'bug/sc-22205-user-browsing-as-guest-user-adds-items-to'
 const BRANCH_PATTERN = /sc-(\d+)/
 
-const test_event: GitHubActionEvent = {
-  eventName: 'push',
-  branch: 'staging'
-}
+const DEFAULT_CONFIGURATION_FILE = path.join(
+  __dirname,
+  'shorcut_configuration.json'
+)
 
 async function run(): Promise<void> {
   try {
@@ -33,7 +32,11 @@ async function run(): Promise<void> {
       core.getInput('GITHUB_TOKEN') || process.env.GITHUB_TOKEN
 
     const configuration_file =
-      core.getInput('configuration_file') || process.env.CONFIGURATION_FILE
+      core.getInput('configuration_file') ||
+      process.env.CONFIGURATION_FILE ||
+      DEFAULT_CONFIGURATION_FILE
+
+    console.log(DEFAULT_CONFIGURATION_FILE)
 
     if (!SHORTCUT_TOKEN) throw new Error('SHORTCUT_TOKEN is required.')
     if (!GITHUB_TOKEN) throw new Error('GITHUB_TOKEN is required.')
