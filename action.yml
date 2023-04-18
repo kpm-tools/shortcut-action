@@ -1,11 +1,18 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: kpm-tools/shortcut-action
+description: Automate story movement in Shortcut
+author: kpm-tools
+
 inputs:
-  milliseconds: # change this
+  SHORTCUT_TOKEN:
+    description: 'Token from Shortcut.com'
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+  GITHUB_TOKEN:
+    description: 'Token from GitHub.com'
+    required: true
+  configuration_file:
+    description: 'Path to configuration file'
+    required: true
+
 runs:
   using: 'node16'
   main: 'dist/index.js'

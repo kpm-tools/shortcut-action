@@ -1,0 +1,9 @@
+{
+  "validEvents": [
+    {
+      "events": [{"eventName": "pull_request", "eventTypes": ["opened"]}],
+      "branches": ["main"],
+      "columnId": "123456789"
+    }
+  ]
+}
