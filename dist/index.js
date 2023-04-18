@@ -190,18 +190,17 @@ const dotenv = __importStar(__nccwpck_require__(437));
 const readFileAsync = util_1.default.promisify(fs_1.default.readFile);
 dotenv.config();
 // TODO: TEMPORARY, DELETE THIS
-const GITHUB_BRANCH = 'bug/sc-22205-user-browsing-as-guest-user-adds-items-to';
 const BRANCH_PATTERN = /sc-(\d+)/;
-const test_event = {
-    eventName: 'push',
-    branch: 'staging'
-};
+const DEFAULT_CONFIGURATION_FILE = path_1.default.join(__dirname, 'shorcut_configuration.json');
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const SHORTCUT_TOKEN = core.getInput('SHORTCUT_TOKEN') || process.env.SHORTCUT_TOKEN;
             const GITHUB_TOKEN = core.getInput('GITHUB_TOKEN') || process.env.GITHUB_TOKEN;
-            const configuration_file = core.getInput('configuration_file') || process.env.CONFIGURATION_FILE;
+            const configuration_file = core.getInput('configuration_file') ||
+                process.env.CONFIGURATION_FILE ||
+                DEFAULT_CONFIGURATION_FILE;
+            console.log(DEFAULT_CONFIGURATION_FILE);
             if (!SHORTCUT_TOKEN)
                 throw new Error('SHORTCUT_TOKEN is required.');
             if (!GITHUB_TOKEN)
