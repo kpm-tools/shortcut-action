@@ -36,6 +36,8 @@ const getConfigurationFile = async (
     ref: github.context.sha
   })
 
+  console.log(response)
+
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   return Buffer.from(response.data.content, response.data.encoding).toString()

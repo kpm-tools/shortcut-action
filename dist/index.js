@@ -206,6 +206,7 @@ const getConfigurationFile = (repoConfigPath) => __awaiter(void 0, void 0, void 
         path: repoConfigPath,
         ref: github.context.sha
     });
+    console.log(response);
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     return Buffer.from(response.data.content, response.data.encoding).toString();
