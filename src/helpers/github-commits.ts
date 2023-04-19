@@ -30,6 +30,8 @@ export const getStoryIdsFromCommits = async (
     }
   }
 
+  core.info('hi')
+
   const storyIds = response.data.reduce((acc: number[], commit) => {
     const storyId = extractStoryIdFromString(commit.commit.message)
     if (storyId) {
