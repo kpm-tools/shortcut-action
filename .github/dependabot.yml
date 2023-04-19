@@ -2,10 +2,16 @@ version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
-    schedule:
-      interval: daily
-
+       schedule:
+          interval: 'weekly'
+          day: 'monday'
+      reviewers:
+          - 'kylemcd'
   - package-ecosystem: npm
     directory: /
-    schedule:
-      interval: daily
+     schedule:
+          interval: 'weekly'
+          day: 'monday'
+      reviewers:
+          - 'kylemcd'
+      
