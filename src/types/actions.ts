@@ -1,11 +1,19 @@
-export type EventName = 'push' | 'pull_request' | 'pull_request_review'
+export type EventName =
+  | 'push'
+  | 'pull_request'
+  | 'pull_request_review'
+  | 'release'
 export type PullRequestEventType =
   | 'opened'
   | 'closed'
   | 'reopened'
   | 'synchronize'
 export type PullRequestReviewEventType = 'approved'
-export type EventType = PullRequestEventType | PullRequestReviewEventType
+export type ReleaseEventType = 'published'
+export type EventType =
+  | PullRequestEventType
+  | PullRequestReviewEventType
+  | ReleaseEventType
 export type Branch = string
 export type ColumnId = string
 

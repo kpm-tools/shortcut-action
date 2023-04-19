@@ -1,10 +1,10 @@
 export const getShortcutIdFromBranchName = (
   branchName: string,
   branchPattern: RegExp
-): number => {
+): number | null => {
   const match = branchName.match(branchPattern)
 
-  if (!match) throw new Error('Branch name does not match pattern.')
+  if (!match) return null
 
   const SHORTCUT_STORY_ID = match[1]
 
