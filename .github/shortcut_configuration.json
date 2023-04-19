@@ -3,7 +3,8 @@
     {
       "events": [
         {
-          "eventName": "push"
+          "eventName": "release",
+          "eventType": "published"
         }
       ],
       "branches": ["main"],
