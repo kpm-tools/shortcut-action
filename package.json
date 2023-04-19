@@ -1,8 +1,8 @@
 {
-  "name": "typescript-action",
-  "version": "0.0.0",
+  "name": "@kpm-tools/shortcut-action",
+  "version": "0.0.1",
   "private": true,
-  "description": "TypeScript template action",
+  "description": "Automate story movement in Shortcut",
   "main": "lib/main.js",
   "scripts": {
     "dev": "ts-node ./src/main.ts",
