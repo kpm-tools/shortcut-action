@@ -141,7 +141,7 @@ export const getBranchBasedOnEventName = async (
   }
 
   if (eventName === 'pull_request' || eventName === 'pull_request_review') {
-    const octokit = new Octokit()
+    const octokit = new Octokit({token: core.getInput('GITHUB_TOKEN')})
 
     if (github.context.payload.pull_request?.number) {
       const response = await octokit.pulls.get({
@@ -162,7 +162,7 @@ export const getBranchBasedOnEventName = async (
 export const updatePRTitleWithShortcutId = async (
   shortcutId: number
 ): Promise<void> => {
-  const octokit = new Octokit()
+  const octokit = new Octokit({token: core.getInput('GITHUB_TOKEN')})
 
   if (github.context.payload.pull_request?.number) {
     const getResponse = await octokit.pulls.get({
