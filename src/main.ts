@@ -23,21 +23,12 @@ import {
   Branch
 } from './types/actions'
 
-// TODO: TEMPORARY, DELETE THIS
 const DEFAULT_BRANCH_PATTERN = /sc-(\d+)/
-const DEFAULT_CONFIGURATION_FILE = '.github/shortcut_configuration.json'
+const DEFAULT_CONFIGURATION_FILE = '.github/shortcut-workflow.json'
 
 const getConfiguration = async (
   repoConfigPath: string
 ): Promise<ConfigFile> => {
-  // if (process.env.CONFIGURATION_FILE) {
-  //   const buffer = await readFileAsync(
-  //     path.join(__dirname, process.env.CONFIGURATION_FILE)
-  //   )
-  //   const json = JSON.parse(buffer.toString())
-  //   return json
-  // }
-
   const {owner, repo} = github.context.repo
 
   if (!repoConfigPath) throw new Error('No configuration path was found')
@@ -53,6 +44,7 @@ const getConfiguration = async (
   })
 
   return JSON.parse(
+    // TS doesn't like this, but it's correct, so we'll ignore it ¯\_(ツ)_/¯
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     Buffer.from(response.data.content, response.data.encoding).toString()
@@ -64,6 +56,9 @@ async function run(): Promise<void> {
     const SHORTCUT_TOKEN = core.getInput('SHORTCUT_TOKEN')
     if (!SHORTCUT_TOKEN) throw new Error('SHORTCUT_TOKEN is required.')
 
+    const BRANCH_PATTERN =
+      core.getInput('branch_pattern') || DEFAULT_BRANCH_PATTERN
+
     const CONFIGURATION_FILE =
       core.getInput('configuration_file') || DEFAULT_CONFIGURATION_FILE
     if (!CONFIGURATION_FILE) throw new Error('configuration_file is required.')
@@ -74,7 +69,7 @@ async function run(): Promise<void> {
 
     const EVENT_NAME: EventName = github.context.eventName as EventName
     const EVENT_TYPE: EventType | undefined = getEventType(EVENT_NAME)
-    const BRANCH = await getBranchBasedOnEventName(EVENT_NAME)
+    const BRANCH: Branch = await getBranchBasedOnEventName(EVENT_NAME)
 
     core.info(`Event detected: ${EVENT_NAME}`)
     if (EVENT_TYPE) {
@@ -95,7 +90,7 @@ async function run(): Promise<void> {
 
     const shortcutStoryIdFromBranch = getShortcutIdFromBranchName(
       githubActionEvent.branch,
-      DEFAULT_BRANCH_PATTERN
+      BRANCH_PATTERN as RegExp
     )
 
     const shortcutIdFromSha = await getShortcutIdMessageFromSha(
