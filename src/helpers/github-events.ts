@@ -125,8 +125,12 @@ export const validateConfigFile = (configFile: ConfigFile): void => {
 export const getEventType = (eventName: EventName): EventType | undefined => {
   if (eventName === 'push') return undefined
 
-  if (eventName === 'pull_request_review' || eventName === 'pull_request') {
-    const pullRequestReviewType = github.context.action as EventType
+  if (
+    eventName === 'pull_request_review' ||
+    eventName === 'pull_request' ||
+    eventName === 'release'
+  ) {
+    const pullRequestReviewType = github.context.payload.action as EventType
     return pullRequestReviewType
   }
 }
@@ -134,7 +138,6 @@ export const getEventType = (eventName: EventName): EventType | undefined => {
 export const getBranchBasedOnEventName = async (
   eventName: EventName
 ): Promise<Branch> => {
-  core.info(JSON.stringify(github))
   if (eventName === 'push') {
     return github.context.ref.replace('refs/heads/', '')
   }
