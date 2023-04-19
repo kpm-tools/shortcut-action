@@ -19,25 +19,15 @@ import {
   GitHubActionEvent,
   ConfigFile,
   EventName,
-  EventType,
-  Branch
+  EventType
 } from './types/actions'
 
-// TODO: TEMPORARY, DELETE THIS
 const DEFAULT_BRANCH_PATTERN = /sc-(\d+)/
 const DEFAULT_CONFIGURATION_FILE = '.github/shortcut_configuration.json'
 
 const getConfiguration = async (
   repoConfigPath: string
 ): Promise<ConfigFile> => {
-  // if (process.env.CONFIGURATION_FILE) {
-  //   const buffer = await readFileAsync(
-  //     path.join(__dirname, process.env.CONFIGURATION_FILE)
-  //   )
-  //   const json = JSON.parse(buffer.toString())
-  //   return json
-  // }
-
   const {owner, repo} = github.context.repo
 
   if (!repoConfigPath) throw new Error('No configuration path was found')
@@ -72,6 +62,9 @@ async function run(): Promise<void> {
     if (!CONFIGURATION) throw new Error('No configuration  was found')
     validateConfigFile(CONFIGURATION)
 
+    const BRANCH_PATTERN =
+      core.getInput('branch_pattern') || DEFAULT_BRANCH_PATTERN
+
     const EVENT_NAME: EventName = github.context.eventName as EventName
     const EVENT_TYPE: EventType | undefined = getEventType(EVENT_NAME)
     const BRANCH = await getBranchBasedOnEventName(EVENT_NAME)
@@ -95,7 +88,7 @@ async function run(): Promise<void> {
 
     const shortcutStoryIdFromBranch = getShortcutIdFromBranchName(
       githubActionEvent.branch,
-      DEFAULT_BRANCH_PATTERN
+      BRANCH_PATTERN
     )
 
     const shortcutIdFromSha = await getShortcutIdMessageFromSha(
@@ -141,7 +134,7 @@ async function run(): Promise<void> {
 
     core.info('No shortcut story found to update')
   } catch (error) {
-    if (error instanceof Error) core.setFailed(error.message)
+    if (error instanceof Error) core.info(error.message)
   }
 }
 
