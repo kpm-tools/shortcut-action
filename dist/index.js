@@ -235,7 +235,6 @@ const getEventType = (eventName) => {
     if (eventName === 'push')
         return undefined;
     if (eventName === 'pull_request_review' || eventName === 'pull_request') {
-        core.info(JSON.stringify(github));
         const pullRequestReviewType = github.context.action;
         return pullRequestReviewType;
     }
@@ -243,6 +242,7 @@ const getEventType = (eventName) => {
 exports.getEventType = getEventType;
 const getBranchBasedOnEventName = (eventName) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
+    core.info(JSON.stringify(github));
     if (eventName === 'push') {
         return github.context.ref.replace('refs/heads/', '');
     }
