@@ -1,6 +1,5 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import {Octokit} from '@octokit/action'
 import {ShortcutClient} from '@useshortcut/client'
 
 import {getShortcutIdFromBranchName} from './helpers/shortcut'
@@ -43,8 +42,10 @@ const getConfiguration = async (
 
   if (!repoConfigPath) throw new Error('No configuration path was found')
 
-  const octokit = new Octokit()
-  const response = await octokit.repos.getContent({
+  const token = core.getInput('GITHUB_TOKEN')
+  const octokit = github.getOctokit(token)
+
+  const response = await octokit.rest.repos.getContent({
     owner,
     repo,
     path: repoConfigPath,

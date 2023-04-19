@@ -1,5 +1,4 @@
 import * as core from '@actions/core'
-import {Octokit} from '@octokit/action'
 import * as github from '@actions/github'
 import {
   ConfigFile,
@@ -141,10 +140,11 @@ export const getBranchBasedOnEventName = async (
   }
 
   if (eventName === 'pull_request' || eventName === 'pull_request_review') {
-    const octokit = new Octokit({token: core.getInput('GITHUB_TOKEN')})
+    const token = core.getInput('GITHUB_TOKEN')
+    const octokit = github.getOctokit(token)
 
     if (github.context.payload.pull_request?.number) {
-      const response = await octokit.pulls.get({
+      const response = await octokit.rest.pulls.get({
         owner: github.context.repo.owner,
         repo: github.context.repo.repo,
         pull_number: github.context.payload.pull_request.number
@@ -162,10 +162,11 @@ export const getBranchBasedOnEventName = async (
 export const updatePRTitleWithShortcutId = async (
   shortcutId: number
 ): Promise<void> => {
-  const octokit = new Octokit({token: core.getInput('GITHUB_TOKEN')})
+  const token = core.getInput('GITHUB_TOKEN')
+  const octokit = github.getOctokit(token)
 
   if (github.context.payload.pull_request?.number) {
-    const getResponse = await octokit.pulls.get({
+    const getResponse = await octokit.rest.pulls.get({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
       pull_number: github.context.payload.pull_request.number
@@ -175,7 +176,7 @@ export const updatePRTitleWithShortcutId = async (
 
     const title = `${getResponse.data.title} [sc-${shortcutId}]`
 
-    const updateResponse = await octokit.pulls.update({
+    const updateResponse = await octokit.rest.pulls.update({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
       pull_number: github.context.payload.pull_request.number,
