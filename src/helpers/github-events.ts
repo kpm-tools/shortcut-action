@@ -135,6 +135,7 @@ export const getEventType = (eventName: EventName): EventType | undefined => {
 export const getBranchBasedOnEventName = async (
   eventName: EventName
 ): Promise<Branch> => {
+  core.info(JSON.stringify(github))
   if (eventName === 'push') {
     return github.context.ref.replace('refs/heads/', '')
   }
@@ -156,4 +157,36 @@ export const getBranchBasedOnEventName = async (
   }
 
   return ''
+}
+
+export const updatePRTitleWithShortcutId = async (
+  shortcutId: number
+): Promise<void> => {
+  const octokit = new Octokit()
+
+  if (github.context.payload.pull_request?.number) {
+    const getResponse = await octokit.pulls.get({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      pull_number: github.context.payload.pull_request.number
+    })
+
+    if (getResponse.data.title.includes(`[sc-${shortcutId}]`)) return
+
+    const title = `${getResponse.data.title} [sc-${shortcutId}]`
+
+    const updateResponse = await octokit.pulls.update({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      pull_number: github.context.payload.pull_request.number,
+      title
+    })
+
+    if (updateResponse.status !== 200) {
+      core.warning('PR title could not be updated')
+      return
+    }
+
+    core.info(`PR title updated to: ${title}`)
+  }
 }

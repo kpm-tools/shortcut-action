@@ -8,10 +8,11 @@ export const getStoryIdsFromCommits = async (
 ): Promise<number[] | null> => {
   const octokit = new Octokit()
 
+  console.log(branch)
+
   const response = await octokit.repos.listCommits({
     owner: github.context.repo.owner,
-    repo: github.context.repo.repo,
-    branch
+    repo: github.context.repo.repo
   })
 
   // const storyIds = response.data.reduce((acc, commit) => {
@@ -31,6 +32,7 @@ export const getStoryIdsFromCommits = async (
   }
 
   const storyIds = response.data.reduce((acc: number[], commit) => {
+    core.info(`Commit message: ${commit.commit.message}`)
     const storyId = extractStoryIdFromString(commit.commit.message)
     if (storyId) {
       acc.push(storyId)
@@ -43,4 +45,32 @@ export const getStoryIdsFromCommits = async (
   core.info(`Found story ids: ${storyIds}`)
 
   return storyIds
+}
+
+export const getShortcutIdMessageFromSha = async (
+  sha: string
+): Promise<number | null> => {
+  const octokit = new Octokit()
+
+  const response = await octokit.repos.getCommit({
+    owner: github.context.repo.owner,
+    repo: github.context.repo.repo,
+    ref: sha
+  })
+
+  const extractStoryIdFromString = (str: string): number | null => {
+    const regex = /\[sc-(\d+)\]/
+    const match = str.match(regex)
+    if (match) {
+      const numberString = match[1]
+      const number = parseInt(numberString, 10)
+      return number
+    } else {
+      return null
+    }
+  }
+
+  const commitMessage = extractStoryIdFromString(response.data.commit.message)
+
+  return commitMessage
 }

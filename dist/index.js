@@ -39,16 +39,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getStoryIdsFromCommits = void 0;
+exports.getShortcutIdMessageFromSha = exports.getStoryIdsFromCommits = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const action_1 = __nccwpck_require__(1231);
 const getStoryIdsFromCommits = (branch) => __awaiter(void 0, void 0, void 0, function* () {
     const octokit = new action_1.Octokit();
+    console.log(branch);
     const response = yield octokit.repos.listCommits({
         owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        branch
+        repo: github.context.repo.repo
     });
     // const storyIds = response.data.reduce((acc, commit) => {
     //
@@ -66,6 +66,7 @@ const getStoryIdsFromCommits = (branch) => __awaiter(void 0, void 0, void 0, fun
         }
     };
     const storyIds = response.data.reduce((acc, commit) => {
+        core.info(`Commit message: ${commit.commit.message}`);
         const storyId = extractStoryIdFromString(commit.commit.message);
         if (storyId) {
             acc.push(storyId);
@@ -78,6 +79,29 @@ const getStoryIdsFromCommits = (branch) => __awaiter(void 0, void 0, void 0, fun
     return storyIds;
 });
 exports.getStoryIdsFromCommits = getStoryIdsFromCommits;
+const getShortcutIdMessageFromSha = (sha) => __awaiter(void 0, void 0, void 0, function* () {
+    const octokit = new action_1.Octokit();
+    const response = yield octokit.repos.getCommit({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        ref: sha
+    });
+    const extractStoryIdFromString = (str) => {
+        const regex = /\[sc-(\d+)\]/;
+        const match = str.match(regex);
+        if (match) {
+            const numberString = match[1];
+            const number = parseInt(numberString, 10);
+            return number;
+        }
+        else {
+            return null;
+        }
+    };
+    const commitMessage = extractStoryIdFromString(response.data.commit.message);
+    return commitMessage;
+});
+exports.getShortcutIdMessageFromSha = getShortcutIdMessageFromSha;
 
 
 /***/ }),
@@ -120,7 +144,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getBranchBasedOnEventName = exports.getEventType = exports.validateConfigFile = exports.getColumnIdForAction = void 0;
+exports.updatePRTitleWithShortcutId = exports.getBranchBasedOnEventName = exports.getEventType = exports.validateConfigFile = exports.getColumnIdForAction = void 0;
+const core = __importStar(__nccwpck_require__(2186));
 const action_1 = __nccwpck_require__(1231);
 const github = __importStar(__nccwpck_require__(5438));
 const getColumnIdForAction = (githubActionEvent, configFile) => {
@@ -217,6 +242,7 @@ const getEventType = (eventName) => {
 exports.getEventType = getEventType;
 const getBranchBasedOnEventName = (eventName) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
+    core.info(JSON.stringify(github));
     if (eventName === 'push') {
         return github.context.ref.replace('refs/heads/', '');
     }
@@ -235,6 +261,97 @@ const getBranchBasedOnEventName = (eventName) => __awaiter(void 0, void 0, void 
     return '';
 });
 exports.getBranchBasedOnEventName = getBranchBasedOnEventName;
+const updatePRTitleWithShortcutId = (shortcutId) => __awaiter(void 0, void 0, void 0, function* () {
+    var _b;
+    const octokit = new action_1.Octokit();
+    if ((_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.number) {
+        const getResponse = yield octokit.pulls.get({
+            owner: github.context.repo.owner,
+            repo: github.context.repo.repo,
+            pull_number: github.context.payload.pull_request.number
+        });
+        if (getResponse.data.title.includes(`[sc-${shortcutId}]`))
+            return;
+        const title = `${getResponse.data.title} [sc-${shortcutId}]`;
+        const updateResponse = yield octokit.pulls.update({
+            owner: github.context.repo.owner,
+            repo: github.context.repo.repo,
+            pull_number: github.context.payload.pull_request.number,
+            title
+        });
+        if (updateResponse.status !== 200) {
+            core.warning('PR title could not be updated');
+            return;
+        }
+        core.info(`PR title updated to: ${title}`);
+    }
+});
+exports.updatePRTitleWithShortcutId = updatePRTitleWithShortcutId;
+
+
+/***/ }),
+
+/***/ 9986:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getShortcutIdsFromReleaseBody = void 0;
+const github = __importStar(__nccwpck_require__(5438));
+const action_1 = __nccwpck_require__(1231);
+const getShortcutIdsFromReleaseBody = () => __awaiter(void 0, void 0, void 0, function* () {
+    const extractStoryIdsFromReleaseBody = (releaseBody) => {
+        const regex = /\[sc-(\d+)\]/g;
+        const matches = releaseBody.matchAll(regex);
+        const numbers = Array.from(matches, match => parseInt(match[1], 10));
+        return numbers.length > 0 ? numbers : null;
+    };
+    const octokit = new action_1.Octokit();
+    const response = yield octokit.repos.getLatestRelease({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo
+    });
+    const releaseBody = response.data.body;
+    if (releaseBody) {
+        const storyIds = extractStoryIdsFromReleaseBody(releaseBody);
+        return storyIds;
+    }
+    return null;
+});
+exports.getShortcutIdsFromReleaseBody = getShortcutIdsFromReleaseBody;
 
 
 /***/ }),
@@ -249,7 +366,7 @@ exports.getShortcutIdFromBranchName = void 0;
 const getShortcutIdFromBranchName = (branchName, branchPattern) => {
     const match = branchName.match(branchPattern);
     if (!match)
-        throw new Error('Branch name does not match pattern.');
+        return null;
     const SHORTCUT_STORY_ID = match[1];
     return parseInt(SHORTCUT_STORY_ID);
 };
@@ -303,6 +420,7 @@ const client_1 = __nccwpck_require__(5914);
 const shortcut_1 = __nccwpck_require__(9250);
 const github_events_1 = __nccwpck_require__(3020);
 const github_commits_1 = __nccwpck_require__(2628);
+const github_releases_1 = __nccwpck_require__(9986);
 // TODO: TEMPORARY, DELETE THIS
 const DEFAULT_BRANCH_PATTERN = /sc-(\d+)/;
 const DEFAULT_CONFIGURATION_FILE = '.github/shortcut_configuration.json';
@@ -333,11 +451,11 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const SHORTCUT_TOKEN = core.getInput('SHORTCUT_TOKEN');
+            if (!SHORTCUT_TOKEN)
+                throw new Error('SHORTCUT_TOKEN is required.');
             const CONFIGURATION_FILE = core.getInput('configuration_file') || DEFAULT_CONFIGURATION_FILE;
             if (!CONFIGURATION_FILE)
                 throw new Error('configuration_file is required.');
-            if (!SHORTCUT_TOKEN)
-                throw new Error('SHORTCUT_TOKEN is required.');
             const CONFIGURATION = yield getConfiguration(CONFIGURATION_FILE);
             if (!CONFIGURATION)
                 throw new Error('No configuration  was found');
@@ -345,7 +463,11 @@ function run() {
             const EVENT_NAME = github.context.eventName;
             const EVENT_TYPE = (0, github_events_1.getEventType)(EVENT_NAME);
             const BRANCH = yield (0, github_events_1.getBranchBasedOnEventName)(EVENT_NAME);
-            yield (0, github_commits_1.getStoryIdsFromCommits)(BRANCH);
+            core.info(`Event detected: ${EVENT_NAME}`);
+            if (EVENT_TYPE) {
+                core.info(`Event Type detected: ${EVENT_TYPE}`);
+            }
+            core.info(`Branch detected: ${BRANCH}`);
             const githubActionEvent = {
                 eventName: EVENT_NAME,
                 branch: BRANCH || ''
@@ -355,11 +477,35 @@ function run() {
             }
             const columnId = (0, github_events_1.getColumnIdForAction)(githubActionEvent, CONFIGURATION);
             const shortcutStoryIdFromBranch = (0, shortcut_1.getShortcutIdFromBranchName)(githubActionEvent.branch, DEFAULT_BRANCH_PATTERN);
+            const shortcutIdFromSha = yield (0, github_commits_1.getShortcutIdMessageFromSha)(github.context.sha);
+            const shortcutId = shortcutStoryIdFromBranch || shortcutIdFromSha || null;
+            if (shortcutId &&
+                (EVENT_NAME === 'pull_request' || EVENT_NAME === 'pull_request_review')) {
+                (0, github_events_1.updatePRTitleWithShortcutId)(shortcutId);
+            }
+            let shortcutIds = null;
+            if (shortcutId) {
+                shortcutIds = [shortcutId];
+            }
+            if (EVENT_NAME === 'release') {
+                const shortcutIdsFromReleaseBody = yield (0, github_releases_1.getShortcutIdsFromReleaseBody)();
+                if (shortcutIdsFromReleaseBody) {
+                    shortcutIds = shortcutIdsFromReleaseBody;
+                }
+            }
             const shortcut = new client_1.ShortcutClient(SHORTCUT_TOKEN);
-            shortcut.updateStory(shortcutStoryIdFromBranch, {
-                workflow_state_id: columnId
-            });
-            core.info(`Shortcut story ${shortcutStoryIdFromBranch} updated, to columnId ${columnId}`);
+            if (shortcutIds) {
+                yield Promise.all(shortcutIds.map(id => {
+                    if (id) {
+                        shortcut.updateStory(id, {
+                            workflow_state_id: columnId
+                        });
+                        core.info(`Shortcut story ${id} updated, to columnId ${columnId}`);
+                    }
+                }));
+                return;
+            }
+            core.info('No shortcut story found to update');
         }
         catch (error) {
             if (error instanceof Error)

@@ -4,14 +4,17 @@ import {Octokit} from '@octokit/action'
 import {ShortcutClient} from '@useshortcut/client'
 
 import {getShortcutIdFromBranchName} from './helpers/shortcut'
+
 import {
   validateConfigFile,
   getColumnIdForAction,
   getEventType,
-  getBranchBasedOnEventName
+  getBranchBasedOnEventName,
+  updatePRTitleWithShortcutId
 } from './helpers/github-events'
 
-import {getStoryIdsFromCommits} from './helpers/github-commits'
+import {getShortcutIdMessageFromSha} from './helpers/github-commits'
+import {getShortcutIdsFromReleaseBody} from './helpers/github-releases'
 
 import {
   GitHubActionEvent,
@@ -58,26 +61,25 @@ const getConfiguration = async (
 async function run(): Promise<void> {
   try {
     const SHORTCUT_TOKEN = core.getInput('SHORTCUT_TOKEN')
+    if (!SHORTCUT_TOKEN) throw new Error('SHORTCUT_TOKEN is required.')
 
     const CONFIGURATION_FILE =
       core.getInput('configuration_file') || DEFAULT_CONFIGURATION_FILE
-
     if (!CONFIGURATION_FILE) throw new Error('configuration_file is required.')
 
-    if (!SHORTCUT_TOKEN) throw new Error('SHORTCUT_TOKEN is required.')
-
     const CONFIGURATION: ConfigFile = await getConfiguration(CONFIGURATION_FILE)
-
     if (!CONFIGURATION) throw new Error('No configuration  was found')
-
     validateConfigFile(CONFIGURATION)
 
     const EVENT_NAME: EventName = github.context.eventName as EventName
-
     const EVENT_TYPE: EventType | undefined = getEventType(EVENT_NAME)
-
     const BRANCH = await getBranchBasedOnEventName(EVENT_NAME)
-    await getStoryIdsFromCommits(BRANCH)
+
+    core.info(`Event detected: ${EVENT_NAME}`)
+    if (EVENT_TYPE) {
+      core.info(`Event Type detected: ${EVENT_TYPE}`)
+    }
+    core.info(`Branch detected: ${BRANCH}`)
 
     const githubActionEvent: GitHubActionEvent = {
       eventName: EVENT_NAME,
@@ -95,15 +97,48 @@ async function run(): Promise<void> {
       DEFAULT_BRANCH_PATTERN
     )
 
-    const shortcut = new ShortcutClient(SHORTCUT_TOKEN)
-
-    shortcut.updateStory(shortcutStoryIdFromBranch, {
-      workflow_state_id: columnId
-    })
-
-    core.info(
-      `Shortcut story ${shortcutStoryIdFromBranch} updated, to columnId ${columnId}`
+    const shortcutIdFromSha = await getShortcutIdMessageFromSha(
+      github.context.sha
     )
+
+    const shortcutId = shortcutStoryIdFromBranch || shortcutIdFromSha || null
+
+    if (
+      shortcutId &&
+      (EVENT_NAME === 'pull_request' || EVENT_NAME === 'pull_request_review')
+    ) {
+      updatePRTitleWithShortcutId(shortcutId)
+    }
+
+    let shortcutIds = null
+
+    if (shortcutId) {
+      shortcutIds = [shortcutId]
+    }
+
+    if (EVENT_NAME === 'release') {
+      const shortcutIdsFromReleaseBody = await getShortcutIdsFromReleaseBody()
+      if (shortcutIdsFromReleaseBody) {
+        shortcutIds = shortcutIdsFromReleaseBody
+      }
+    }
+
+    const shortcut = new ShortcutClient(SHORTCUT_TOKEN)
+    if (shortcutIds) {
+      await Promise.all(
+        shortcutIds.map(id => {
+          if (id) {
+            shortcut.updateStory(id, {
+              workflow_state_id: columnId
+            })
+            core.info(`Shortcut story ${id} updated, to columnId ${columnId}`)
+          }
+        })
+      )
+      return
+    }
+
+    core.info('No shortcut story found to update')
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
