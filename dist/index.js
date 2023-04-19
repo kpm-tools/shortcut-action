@@ -197,15 +197,16 @@ exports.validateConfigFile = validateConfigFile;
 const getEventType = (eventName) => {
     if (eventName === 'push')
         return undefined;
-    if (eventName === 'pull_request_review' || eventName === 'pull_request') {
-        const pullRequestReviewType = github.context.action;
+    if (eventName === 'pull_request_review' ||
+        eventName === 'pull_request' ||
+        eventName === 'release') {
+        const pullRequestReviewType = github.context.payload.action;
         return pullRequestReviewType;
     }
 };
 exports.getEventType = getEventType;
 const getBranchBasedOnEventName = (eventName) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    core.info(JSON.stringify(github));
     if (eventName === 'push') {
         return github.context.ref.replace('refs/heads/', '');
     }
