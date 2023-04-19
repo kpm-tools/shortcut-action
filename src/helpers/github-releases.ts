@@ -1,3 +1,4 @@
+import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {Octokit} from '@octokit/action'
 
@@ -13,7 +14,7 @@ export const getShortcutIdsFromReleaseBody = async (): Promise<
     return numbers.length > 0 ? numbers : null
   }
 
-  const octokit = new Octokit()
+  const octokit = new Octokit({token: core.getInput('GITHUB_TOKEN')})
 
   const response = await octokit.repos.getLatestRelease({
     owner: github.context.repo.owner,

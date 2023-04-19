@@ -6,9 +6,7 @@ import {Branch} from '../types/actions'
 export const getStoryIdsFromCommits = async (
   branch: Branch
 ): Promise<number[] | null> => {
-  const octokit = new Octokit()
-
-  console.log(branch)
+  const octokit = new Octokit({token: core.getInput('GITHUB_TOKEN')})
 
   const response = await octokit.repos.listCommits({
     owner: github.context.repo.owner,
@@ -50,7 +48,7 @@ export const getStoryIdsFromCommits = async (
 export const getShortcutIdMessageFromSha = async (
   sha: string
 ): Promise<number | null> => {
-  const octokit = new Octokit()
+  const octokit = new Octokit({token: core.getInput('GITHUB_TOKEN')})
 
   const response = await octokit.repos.getCommit({
     owner: github.context.repo.owner,
@@ -74,3 +72,4 @@ export const getShortcutIdMessageFromSha = async (
 
   return commitMessage
 }
+

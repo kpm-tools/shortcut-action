@@ -44,8 +44,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const action_1 = __nccwpck_require__(1231);
 const getStoryIdsFromCommits = (branch) => __awaiter(void 0, void 0, void 0, function* () {
-    const octokit = new action_1.Octokit();
-    console.log(branch);
+    const octokit = new action_1.Octokit({ token: core.getInput('GITHUB_TOKEN') });
     const response = yield octokit.repos.listCommits({
         owner: github.context.repo.owner,
         repo: github.context.repo.repo
@@ -80,7 +79,7 @@ const getStoryIdsFromCommits = (branch) => __awaiter(void 0, void 0, void 0, fun
 });
 exports.getStoryIdsFromCommits = getStoryIdsFromCommits;
 const getShortcutIdMessageFromSha = (sha) => __awaiter(void 0, void 0, void 0, function* () {
-    const octokit = new action_1.Octokit();
+    const octokit = new action_1.Octokit({ token: core.getInput('GITHUB_TOKEN') });
     const response = yield octokit.repos.getCommit({
         owner: github.context.repo.owner,
         repo: github.context.repo.repo,
@@ -247,7 +246,7 @@ const getBranchBasedOnEventName = (eventName) => __awaiter(void 0, void 0, void 
         return github.context.ref.replace('refs/heads/', '');
     }
     if (eventName === 'pull_request' || eventName === 'pull_request_review') {
-        const octokit = new action_1.Octokit();
+        const octokit = new action_1.Octokit({ token: core.getInput('GITHUB_TOKEN') });
         if ((_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.number) {
             const response = yield octokit.pulls.get({
                 owner: github.context.repo.owner,
@@ -263,7 +262,7 @@ const getBranchBasedOnEventName = (eventName) => __awaiter(void 0, void 0, void 
 exports.getBranchBasedOnEventName = getBranchBasedOnEventName;
 const updatePRTitleWithShortcutId = (shortcutId) => __awaiter(void 0, void 0, void 0, function* () {
     var _b;
-    const octokit = new action_1.Octokit();
+    const octokit = new action_1.Octokit({ token: core.getInput('GITHUB_TOKEN') });
     if ((_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.number) {
         const getResponse = yield octokit.pulls.get({
             owner: github.context.repo.owner,
@@ -330,6 +329,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getShortcutIdsFromReleaseBody = void 0;
+const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const action_1 = __nccwpck_require__(1231);
 const getShortcutIdsFromReleaseBody = () => __awaiter(void 0, void 0, void 0, function* () {
@@ -339,7 +339,7 @@ const getShortcutIdsFromReleaseBody = () => __awaiter(void 0, void 0, void 0, fu
         const numbers = Array.from(matches, match => parseInt(match[1], 10));
         return numbers.length > 0 ? numbers : null;
     };
-    const octokit = new action_1.Octokit();
+    const octokit = new action_1.Octokit({ token: core.getInput('GITHUB_TOKEN') });
     const response = yield octokit.repos.getLatestRelease({
         owner: github.context.repo.owner,
         repo: github.context.repo.repo
