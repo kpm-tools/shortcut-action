@@ -1,7 +1,3 @@
 {
-  "push": {
-    "base": {
-      "ref": "bug/sc-22205-user-browsing-as-guest-user-adds-items-to"
-    }
-  }
+  "ref": "refs/heads/main"
 }

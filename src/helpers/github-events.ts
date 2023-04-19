@@ -1,6 +1,9 @@
+import * as core from '@actions/core'
+import {Octokit} from '@octokit/action'
 import * as github from '@actions/github'
 import {
   ConfigFile,
+  ConfigFileEvent,
   GitHubActionEvent,
   EventType,
   EventName,
@@ -23,17 +26,18 @@ export const getColumnIdForAction = (
   }
 
   for (const validEvent of configFile.validEvents) {
-    const matchingEvent: boolean = validEvent.events.some(
+    const matchingEvent: ConfigFileEvent[] = validEvent.events.filter(
       event =>
         event.eventName === githubActionEvent.eventName &&
         (!event.eventTypes ||
           !githubActionEvent.eventType ||
           event.eventTypes.includes(githubActionEvent.eventType))
     )
+
     if (
-      (matchingEvent &&
-        validEvent.branches.includes(githubActionEvent.branch)) ||
-      isRegexMatch(validEvent.branches, githubActionEvent.branch)
+      matchingEvent.length > 0 &&
+      (validEvent.branches.includes(githubActionEvent.branch) ||
+        isRegexMatch(validEvent.branches, githubActionEvent.branch))
     ) {
       return parseInt(validEvent.columnId)
     }
@@ -114,8 +118,7 @@ export const validateConfigFile = (configFile: ConfigFile): void => {
 
   if (matchingEvents.length > 0) {
     throw new Error(
-      JSON.stringify(matchingEvents) +
-        "Duplicative config found. Make sure that your actions don't apply on the same event and the same columnId as another one"
+      "Duplicative config found. Make sure that your actions don't apply on the same event and the same columnId as another one"
     )
   }
 }
@@ -127,4 +130,30 @@ export const getEventType = (eventName: EventName): EventType | undefined => {
     const pullRequestReviewType = github.context.action as EventType
     return pullRequestReviewType
   }
+}
+
+export const getBranchBasedOnEventName = async (
+  eventName: EventName
+): Promise<Branch> => {
+  if (eventName === 'push') {
+    return github.context.ref.replace('refs/heads/', '')
+  }
+
+  if (eventName === 'pull_request' || eventName === 'pull_request_review') {
+    const octokit = new Octokit()
+
+    if (github.context.payload.pull_request?.number) {
+      const response = await octokit.pulls.get({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        pull_number: github.context.payload.pull_request.number
+      })
+
+      const branch = response.data.head.ref
+
+      return branch
+    }
+  }
+
+  return ''
 }

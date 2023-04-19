@@ -1,6 +1,87 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 2628:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getStoryIdsFromCommits = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const github = __importStar(__nccwpck_require__(5438));
+const action_1 = __nccwpck_require__(1231);
+const getStoryIdsFromCommits = (branch) => __awaiter(void 0, void 0, void 0, function* () {
+    const octokit = new action_1.Octokit();
+    const response = yield octokit.repos.listCommits({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        branch
+    });
+    // const storyIds = response.data.reduce((acc, commit) => {
+    //
+    // },[]
+    const extractStoryIdFromString = (str) => {
+        const regex = /\[sc-(\d+)\]/;
+        const match = str.match(regex);
+        if (match) {
+            const numberString = match[1];
+            const number = parseInt(numberString, 10);
+            return number;
+        }
+        else {
+            return null;
+        }
+    };
+    const storyIds = response.data.reduce((acc, commit) => {
+        const storyId = extractStoryIdFromString(commit.commit.message);
+        if (storyId) {
+            acc.push(storyId);
+        }
+        return acc;
+    }, []);
+    if (storyIds.length === 0)
+        return null;
+    core.info(`Found story ids: ${storyIds}`);
+    return storyIds;
+});
+exports.getStoryIdsFromCommits = getStoryIdsFromCommits;
+
+
+/***/ }),
+
 /***/ 3020:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -29,8 +110,18 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getEventType = exports.validateConfigFile = exports.getColumnIdForAction = void 0;
+exports.getBranchBasedOnEventName = exports.getEventType = exports.validateConfigFile = exports.getColumnIdForAction = void 0;
+const action_1 = __nccwpck_require__(1231);
 const github = __importStar(__nccwpck_require__(5438));
 const getColumnIdForAction = (githubActionEvent, configFile) => {
     const isRegexMatch = (branches, currentBranch) => {
@@ -43,13 +134,13 @@ const getColumnIdForAction = (githubActionEvent, configFile) => {
         return false;
     };
     for (const validEvent of configFile.validEvents) {
-        const matchingEvent = validEvent.events.some(event => event.eventName === githubActionEvent.eventName &&
+        const matchingEvent = validEvent.events.filter(event => event.eventName === githubActionEvent.eventName &&
             (!event.eventTypes ||
                 !githubActionEvent.eventType ||
                 event.eventTypes.includes(githubActionEvent.eventType)));
-        if ((matchingEvent &&
-            validEvent.branches.includes(githubActionEvent.branch)) ||
-            isRegexMatch(validEvent.branches, githubActionEvent.branch)) {
+        if (matchingEvent.length > 0 &&
+            (validEvent.branches.includes(githubActionEvent.branch) ||
+                isRegexMatch(validEvent.branches, githubActionEvent.branch))) {
             return parseInt(validEvent.columnId);
         }
     }
@@ -111,8 +202,7 @@ const validateConfigFile = (configFile) => {
         return matched;
     });
     if (matchingEvents.length > 0) {
-        throw new Error(JSON.stringify(matchingEvents) +
-            "Duplicative config found. Make sure that your actions don't apply on the same event and the same columnId as another one");
+        throw new Error("Duplicative config found. Make sure that your actions don't apply on the same event and the same columnId as another one");
     }
 };
 exports.validateConfigFile = validateConfigFile;
@@ -125,6 +215,26 @@ const getEventType = (eventName) => {
     }
 };
 exports.getEventType = getEventType;
+const getBranchBasedOnEventName = (eventName) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    if (eventName === 'push') {
+        return github.context.ref.replace('refs/heads/', '');
+    }
+    if (eventName === 'pull_request' || eventName === 'pull_request_review') {
+        const octokit = new action_1.Octokit();
+        if ((_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.number) {
+            const response = yield octokit.pulls.get({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                pull_number: github.context.payload.pull_request.number
+            });
+            const branch = response.data.head.ref;
+            return branch;
+        }
+    }
+    return '';
+});
+exports.getBranchBasedOnEventName = getBranchBasedOnEventName;
 
 
 /***/ }),
@@ -185,10 +295,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
@@ -196,22 +302,19 @@ const action_1 = __nccwpck_require__(1231);
 const client_1 = __nccwpck_require__(5914);
 const shortcut_1 = __nccwpck_require__(9250);
 const github_events_1 = __nccwpck_require__(3020);
-const path_1 = __importDefault(__nccwpck_require__(1017));
-const fs_1 = __importDefault(__nccwpck_require__(7147));
-const util_1 = __importDefault(__nccwpck_require__(3837));
-const dotenv = __importStar(__nccwpck_require__(2437));
-const readFileAsync = util_1.default.promisify(fs_1.default.readFile);
-dotenv.config();
+const github_commits_1 = __nccwpck_require__(2628);
 // TODO: TEMPORARY, DELETE THIS
 const DEFAULT_BRANCH_PATTERN = /sc-(\d+)/;
 const DEFAULT_CONFIGURATION_FILE = '.github/shortcut_configuration.json';
-const [owner, repo] = ((_a = process.env.GITHUB_REPOSITORY) === null || _a === void 0 ? void 0 : _a.split('/')) || [];
 const getConfiguration = (repoConfigPath) => __awaiter(void 0, void 0, void 0, function* () {
-    if (process.env.CONFIGURATION_FILE) {
-        const buffer = yield readFileAsync(path_1.default.join(__dirname, process.env.CONFIGURATION_FILE));
-        const json = JSON.parse(buffer.toString());
-        return json;
-    }
+    // if (process.env.CONFIGURATION_FILE) {
+    //   const buffer = await readFileAsync(
+    //     path.join(__dirname, process.env.CONFIGURATION_FILE)
+    //   )
+    //   const json = JSON.parse(buffer.toString())
+    //   return json
+    // }
+    const { owner, repo } = github.context.repo;
     if (!repoConfigPath)
         throw new Error('No configuration path was found');
     const octokit = new action_1.Octokit();
@@ -230,28 +333,22 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const SHORTCUT_TOKEN = core.getInput('SHORTCUT_TOKEN');
-            const GITHUB_TOKEN = core.getInput('GITHUB_TOKEN');
             const CONFIGURATION_FILE = core.getInput('configuration_file') || DEFAULT_CONFIGURATION_FILE;
             if (!CONFIGURATION_FILE)
                 throw new Error('configuration_file is required.');
             if (!SHORTCUT_TOKEN)
                 throw new Error('SHORTCUT_TOKEN is required.');
-            if (!GITHUB_TOKEN)
-                throw new Error('GITHUB_TOKEN is required.');
             const CONFIGURATION = yield getConfiguration(CONFIGURATION_FILE);
             if (!CONFIGURATION)
                 throw new Error('No configuration  was found');
             (0, github_events_1.validateConfigFile)(CONFIGURATION);
-            const EVENT_NAME = core.getInput('GITHUB_EVENT_NAME');
+            const EVENT_NAME = github.context.eventName;
             const EVENT_TYPE = (0, github_events_1.getEventType)(EVENT_NAME);
-            const BRANCH = core.getInput('GITHUB_REF_NAME');
-            const BRANCH_REF = core.getInput('GITHUB_REF_TYPE');
-            if (!BRANCH || BRANCH_REF === 'tag') {
-                throw new Error('Branch not found, or tag was used');
-            }
+            const BRANCH = yield (0, github_events_1.getBranchBasedOnEventName)(EVENT_NAME);
+            yield (0, github_commits_1.getStoryIdsFromCommits)(BRANCH);
             const githubActionEvent = {
                 eventName: EVENT_NAME,
-                branch: BRANCH
+                branch: BRANCH || ''
             };
             if (EVENT_TYPE) {
                 githubActionEvent.eventType = EVENT_TYPE;
@@ -262,6 +359,7 @@ function run() {
             shortcut.updateStory(shortcutStoryIdFromBranch, {
                 workflow_state_id: columnId
             });
+            core.info(`Shortcut story ${shortcutStoryIdFromBranch} updated, to columnId ${columnId}`);
         }
         catch (error) {
             if (error instanceof Error)
@@ -12803,125 +12901,6 @@ exports.Deprecation = Deprecation;
 
 /***/ }),
 
-/***/ 2437:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-const fs = __nccwpck_require__(7147)
-const path = __nccwpck_require__(1017)
-const os = __nccwpck_require__(2037)
-const packageJson = __nccwpck_require__(9968)
-
-const version = packageJson.version
-
-const LINE = /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/mg
-
-// Parser src into an Object
-function parse (src) {
-  const obj = {}
-
-  // Convert buffer to string
-  let lines = src.toString()
-
-  // Convert line breaks to same format
-  lines = lines.replace(/\r\n?/mg, '\n')
-
-  let match
-  while ((match = LINE.exec(lines)) != null) {
-    const key = match[1]
-
-    // Default undefined or null to empty string
-    let value = (match[2] || '')
-
-    // Remove whitespace
-    value = value.trim()
-
-    // Check if double quoted
-    const maybeQuote = value[0]
-
-    // Remove surrounding quotes
-    value = value.replace(/^(['"`])([\s\S]*)\1$/mg, '$2')
-
-    // Expand newlines if double quoted
-    if (maybeQuote === '"') {
-      value = value.replace(/\\n/g, '\n')
-      value = value.replace(/\\r/g, '\r')
-    }
-
-    // Add to object
-    obj[key] = value
-  }
-
-  return obj
-}
-
-function _log (message) {
-  console.log(`[dotenv@${version}][DEBUG] ${message}`)
-}
-
-function _resolveHome (envPath) {
-  return envPath[0] === '~' ? path.join(os.homedir(), envPath.slice(1)) : envPath
-}
-
-// Populates process.env from .env file
-function config (options) {
-  let dotenvPath = path.resolve(process.cwd(), '.env')
-  let encoding = 'utf8'
-  const debug = Boolean(options && options.debug)
-  const override = Boolean(options && options.override)
-
-  if (options) {
-    if (options.path != null) {
-      dotenvPath = _resolveHome(options.path)
-    }
-    if (options.encoding != null) {
-      encoding = options.encoding
-    }
-  }
-
-  try {
-    // Specifying an encoding returns a string instead of a buffer
-    const parsed = DotenvModule.parse(fs.readFileSync(dotenvPath, { encoding }))
-
-    Object.keys(parsed).forEach(function (key) {
-      if (!Object.prototype.hasOwnProperty.call(process.env, key)) {
-        process.env[key] = parsed[key]
-      } else {
-        if (override === true) {
-          process.env[key] = parsed[key]
-        }
-
-        if (debug) {
-          if (override === true) {
-            _log(`"${key}" is already defined in \`process.env\` and WAS overwritten`)
-          } else {
-            _log(`"${key}" is already defined in \`process.env\` and was NOT overwritten`)
-          }
-        }
-      }
-    })
-
-    return { parsed }
-  } catch (e) {
-    if (debug) {
-      _log(`Failed to load ${dotenvPath} ${e.message}`)
-    }
-
-    return { error: e }
-  }
-}
-
-const DotenvModule = {
-  config,
-  parse
-}
-
-module.exports.config = DotenvModule.config
-module.exports.parse = DotenvModule.parse
-module.exports = DotenvModule
-
-
-/***/ }),
-
 /***/ 1133:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -20103,14 +20082,6 @@ module.exports = require("zlib");
 
 "use strict";
 module.exports = JSON.parse('{"name":"axios","version":"0.21.4","description":"Promise based HTTP client for the browser and node.js","main":"index.js","scripts":{"test":"grunt test","start":"node ./sandbox/server.js","build":"NODE_ENV=production grunt build","preversion":"npm test","version":"npm run build && grunt version && git add -A dist && git add CHANGELOG.md bower.json package.json","postversion":"git push && git push --tags","examples":"node ./examples/server.js","coveralls":"cat coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js","fix":"eslint --fix lib/**/*.js"},"repository":{"type":"git","url":"https://github.com/axios/axios.git"},"keywords":["xhr","http","ajax","promise","node"],"author":"Matt Zabriskie","license":"MIT","bugs":{"url":"https://github.com/axios/axios/issues"},"homepage":"https://axios-http.com","devDependencies":{"coveralls":"^3.0.0","es6-promise":"^4.2.4","grunt":"^1.3.0","grunt-banner":"^0.6.0","grunt-cli":"^1.2.0","grunt-contrib-clean":"^1.1.0","grunt-contrib-watch":"^1.0.0","grunt-eslint":"^23.0.0","grunt-karma":"^4.0.0","grunt-mocha-test":"^0.13.3","grunt-ts":"^6.0.0-beta.19","grunt-webpack":"^4.0.2","istanbul-instrumenter-loader":"^1.0.0","jasmine-core":"^2.4.1","karma":"^6.3.2","karma-chrome-launcher":"^3.1.0","karma-firefox-launcher":"^2.1.0","karma-jasmine":"^1.1.1","karma-jasmine-ajax":"^0.1.13","karma-safari-launcher":"^1.0.0","karma-sauce-launcher":"^4.3.6","karma-sinon":"^1.0.5","karma-sourcemap-loader":"^0.3.8","karma-webpack":"^4.0.2","load-grunt-tasks":"^3.5.2","minimist":"^1.2.0","mocha":"^8.2.1","sinon":"^4.5.0","terser-webpack-plugin":"^4.2.3","typescript":"^4.0.5","url-search-params":"^0.10.0","webpack":"^4.44.2","webpack-dev-server":"^3.11.0"},"browser":{"./lib/adapters/http.js":"./lib/adapters/xhr.js"},"jsdelivr":"dist/axios.min.js","unpkg":"dist/axios.min.js","typings":"./index.d.ts","dependencies":{"follow-redirects":"^1.14.0"},"bundlesize":[{"path":"./dist/axios.min.js","threshold":"5kB"}]}');
-
-/***/ }),
-
-/***/ 9968:
-/***/ ((module) => {
-
-"use strict";
-module.exports = JSON.parse('{"name":"dotenv","version":"16.0.3","description":"Loads environment variables from .env file","main":"lib/main.js","types":"lib/main.d.ts","exports":{".":{"require":"./lib/main.js","types":"./lib/main.d.ts","default":"./lib/main.js"},"./config":"./config.js","./config.js":"./config.js","./lib/env-options":"./lib/env-options.js","./lib/env-options.js":"./lib/env-options.js","./lib/cli-options":"./lib/cli-options.js","./lib/cli-options.js":"./lib/cli-options.js","./package.json":"./package.json"},"scripts":{"dts-check":"tsc --project tests/types/tsconfig.json","lint":"standard","lint-readme":"standard-markdown","pretest":"npm run lint && npm run dts-check","test":"tap tests/*.js --100 -Rspec","prerelease":"npm test","release":"standard-version"},"repository":{"type":"git","url":"git://github.com/motdotla/dotenv.git"},"keywords":["dotenv","env",".env","environment","variables","config","settings"],"readmeFilename":"README.md","license":"BSD-2-Clause","devDependencies":{"@types/node":"^17.0.9","decache":"^4.6.1","dtslint":"^3.7.0","sinon":"^12.0.1","standard":"^16.0.4","standard-markdown":"^7.1.0","standard-version":"^9.3.2","tap":"^15.1.6","tar":"^6.1.11","typescript":"^4.5.4"},"engines":{"node":">=12"}}');
 
 /***/ }),
 

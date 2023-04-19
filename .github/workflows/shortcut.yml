@@ -13,6 +13,5 @@ jobs:
       - name: Shortcut
         uses: ./
         id: shorcut
-        env:
+        with:
           SHORTCUT_TOKEN: ${{ secrets.SHORTCUT_TOKEN}}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
