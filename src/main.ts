@@ -104,6 +104,7 @@ async function run(): Promise<void> {
       (EVENT_NAME === 'pull_request' || EVENT_NAME === 'pull_request_review')
     ) {
       updatePRTitleWithShortcutId(shortcutId)
+      core.info(`PR title updated with Shortcut story id ${shortcutId}`)
     }
 
     let shortcutIds = null
