@@ -1,15 +1,8 @@
 import {jest, afterEach, expect, test} from '@jest/globals'
-
-const octokit = {
-  rest: {
-    repos: {
-      getCommit: jest.fn()
-    }
-  }
-}
+import {octokit, getOctokit} from './global.mock'
 
 jest.mock('@actions/github', () => ({
-  getOctokit: jest.fn().mockImplementation(() => octokit),
+  getOctokit,
   context: {
     repo: {
       owner: 'owner',
@@ -24,7 +17,7 @@ afterEach(() => {
   jest.clearAllMocks()
 })
 
-test('passing a valid sha returns a shortcut id', async () => {
+test('a commit message with a shortct id returns the shortcut id', async () => {
   const sha = '1234567890'
   octokit.rest.repos.getCommit.mockReturnValueOnce({
     data: {
@@ -59,6 +52,7 @@ test('a commit message with no shorcut id returns null', async () => {
   const {getShortcutIdMessageFromSha} = await import(
     '../../src/helpers/github-commits'
   )
+
   const shortcutId = await getShortcutIdMessageFromSha(sha)
 
   expect(shortcutId).toEqual(null)

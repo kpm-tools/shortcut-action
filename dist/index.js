@@ -62,8 +62,8 @@ const getShortcutIdMessageFromSha = (sha) => __awaiter(void 0, void 0, void 0, f
             return null;
         }
     };
-    const commitMessage = extractStoryIdFromString(response.data.commit.message);
-    return commitMessage;
+    const shortcutId = extractStoryIdFromString(response.data.commit.message);
+    return shortcutId;
 });
 exports.getShortcutIdMessageFromSha = getShortcutIdMessageFromSha;
 
@@ -123,9 +123,7 @@ const getColumnIdForAction = (githubActionEvent, configFile) => {
     };
     for (const validEvent of configFile.validEvents) {
         const matchingEvent = validEvent.events.filter(event => event.eventName === githubActionEvent.eventName &&
-            (!event.eventTypes ||
-                !githubActionEvent.eventType ||
-                event.eventTypes.includes(githubActionEvent.eventType)));
+            event.eventType === githubActionEvent.eventType);
         if (matchingEvent.length > 0 &&
             (validEvent.branches.includes(githubActionEvent.branch) ||
                 isRegexMatch(validEvent.branches, githubActionEvent.branch))) {
@@ -160,14 +158,14 @@ const validateConfigFile = (configFile) => {
                 });
             });
         });
-        const matchingEventTypes = otherEventsArray.some(otherEvents => {
-            return otherEvents.events.some(otherEvent => {
-                return validEvent.events.some(event => {
-                    return (!event.eventTypes ||
-                        !(otherEvent === null || otherEvent === void 0 ? void 0 : otherEvent.eventTypes) ||
+        const matchingEventType = otherEventsArray.some(otherEvents => {
+            return validEvent.events.some(event => {
+                return otherEvents.events.some(otherEvent => {
+                    return (!(event === null || event === void 0 ? void 0 : event.eventType) ||
+                        !(otherEvent === null || otherEvent === void 0 ? void 0 : otherEvent.eventType) ||
                         doMatchingValuesExist({
-                            sourceArray: event.eventTypes,
-                            matcherArray: otherEvent.eventTypes
+                            sourceArray: [event.eventType],
+                            matcherArray: [otherEvent.eventType]
                         }));
                 });
             });
@@ -183,7 +181,7 @@ const validateConfigFile = (configFile) => {
         });
         const matched = areAllMatchesTruthy([
             matchingName,
-            matchingEventTypes,
+            matchingEventType,
             matchingBranches,
             matchingColumnId
         ]);
@@ -387,17 +385,9 @@ const shortcut_1 = __nccwpck_require__(9250);
 const github_events_1 = __nccwpck_require__(3020);
 const github_commits_1 = __nccwpck_require__(2628);
 const github_releases_1 = __nccwpck_require__(9986);
-// TODO: TEMPORARY, DELETE THIS
 const DEFAULT_BRANCH_PATTERN = /sc-(\d+)/;
-const DEFAULT_CONFIGURATION_FILE = '.github/shortcut_configuration.json';
+const DEFAULT_CONFIGURATION_FILE = '.github/shortcut-workflow.json';
 const getConfiguration = (repoConfigPath) => __awaiter(void 0, void 0, void 0, function* () {
-    // if (process.env.CONFIGURATION_FILE) {
-    //   const buffer = await readFileAsync(
-    //     path.join(__dirname, process.env.CONFIGURATION_FILE)
-    //   )
-    //   const json = JSON.parse(buffer.toString())
-    //   return json
-    // }
     const { owner, repo } = github.context.repo;
     if (!repoConfigPath)
         throw new Error('No configuration path was found');
@@ -410,6 +400,7 @@ const getConfiguration = (repoConfigPath) => __awaiter(void 0, void 0, void 0, f
         ref: github.context.sha
     });
     return JSON.parse(
+    // TS doesn't like this, but it's correct, so we'll ignore it ¯\_(ツ)_/¯
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     Buffer.from(response.data.content, response.data.encoding).toString());
@@ -420,6 +411,7 @@ function run() {
             const SHORTCUT_TOKEN = core.getInput('SHORTCUT_TOKEN');
             if (!SHORTCUT_TOKEN)
                 throw new Error('SHORTCUT_TOKEN is required.');
+            const BRANCH_PATTERN = core.getInput('branch_pattern') || DEFAULT_BRANCH_PATTERN;
             const CONFIGURATION_FILE = core.getInput('configuration_file') || DEFAULT_CONFIGURATION_FILE;
             if (!CONFIGURATION_FILE)
                 throw new Error('configuration_file is required.');
@@ -443,12 +435,13 @@ function run() {
                 githubActionEvent.eventType = EVENT_TYPE;
             }
             const columnId = (0, github_events_1.getColumnIdForAction)(githubActionEvent, CONFIGURATION);
-            const shortcutStoryIdFromBranch = (0, shortcut_1.getShortcutIdFromBranchName)(githubActionEvent.branch, DEFAULT_BRANCH_PATTERN);
+            const shortcutStoryIdFromBranch = (0, shortcut_1.getShortcutIdFromBranchName)(githubActionEvent.branch, BRANCH_PATTERN);
             const shortcutIdFromSha = yield (0, github_commits_1.getShortcutIdMessageFromSha)(github.context.sha);
             const shortcutId = shortcutStoryIdFromBranch || shortcutIdFromSha || null;
             if (shortcutId &&
                 (EVENT_NAME === 'pull_request' || EVENT_NAME === 'pull_request_review')) {
                 (0, github_events_1.updatePRTitleWithShortcutId)(shortcutId);
+                core.info(`PR title updated with Shortcut story id ${shortcutId}`);
             }
             let shortcutIds = null;
             if (shortcutId) {

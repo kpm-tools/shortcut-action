@@ -6,13 +6,27 @@ import {
   GitHubActionEvent,
   EventType,
   EventName,
-  Branch
+  Branch,
+  zEventName,
+  zEventType,
+  zPullRequestEventType,
+  zPullRequestReviewEventType,
+  zReleaseEventType
 } from '../types/actions'
 
 export const getColumnIdForAction = (
   githubActionEvent: GitHubActionEvent,
   configFile: ConfigFile
 ): number | undefined => {
+  if (!githubActionEvent?.branch) {
+    core.error('A branch name is required')
+    return undefined
+  }
+  if (!githubActionEvent?.eventName) {
+    core.error('An event name is required')
+    return undefined
+  }
+
   const isRegexMatch = (branches: string[], currentBranch: string): boolean => {
     for (const branch of branches) {
       const regexString = `${branch}`
@@ -28,9 +42,7 @@ export const getColumnIdForAction = (
     const matchingEvent: ConfigFileEvent[] = validEvent.events.filter(
       event =>
         event.eventName === githubActionEvent.eventName &&
-        (!event.eventTypes ||
-          !githubActionEvent.eventType ||
-          event.eventTypes.includes(githubActionEvent.eventType))
+        event.eventType === githubActionEvent.eventType
     )
 
     if (
@@ -45,6 +57,9 @@ export const getColumnIdForAction = (
 }
 
 export const validateConfigFile = (configFile: ConfigFile): void => {
+  if (!configFile) {
+    return core.error('No config file was passed')
+  }
   const doMatchingValuesExist = <ArrayType>({
     sourceArray,
     matcherArray
@@ -79,35 +94,43 @@ export const validateConfigFile = (configFile: ConfigFile): void => {
       })
     })
 
-    const matchingEventTypes = otherEventsArray.some(otherEvents => {
-      return otherEvents.events.some(otherEvent => {
-        return validEvent.events.some(event => {
+    const matchingEventType = otherEventsArray.some(otherEvents => {
+      return validEvent.events.some(event => {
+        return otherEvents.events.some(otherEvent => {
           return (
-            !event.eventTypes ||
-            !otherEvent?.eventTypes ||
+            !event?.eventType ||
+            !otherEvent?.eventType ||
             doMatchingValuesExist<EventType>({
-              sourceArray: event.eventTypes,
-              matcherArray: otherEvent.eventTypes
+              sourceArray: [event.eventType],
+              matcherArray: [otherEvent.eventType]
             })
           )
         })
       })
     })
 
-    const matchingBranches = otherEventsArray.some(otherEvents => {
-      return doMatchingValuesExist<Branch>({
-        sourceArray: validEvent.branches,
-        matcherArray: otherEvents.branches
-      })
+    const matchingBranches = otherEventsArray.some(otherEvent => {
+      return (
+        !validEvent?.branches ||
+        validEvent?.branches?.length > 0 ||
+        doMatchingValuesExist<Branch>({
+          sourceArray: validEvent.branches,
+          matcherArray: otherEvent.branches
+        })
+      )
     })
 
-    const matchingColumnId = otherEventsArray.some(otherEvents => {
-      return otherEvents.columnId === validEvent.columnId
+    const matchingColumnId = otherEventsArray.some(otherEvent => {
+      return (
+        !validEvent?.columnId ||
+        !otherEvent?.columnId ||
+        otherEvent.columnId === validEvent.columnId
+      )
     })
 
     const matched = areAllMatchesTruthy([
       matchingName,
-      matchingEventTypes,
+      matchingEventType,
       matchingBranches,
       matchingColumnId
     ])
@@ -116,23 +139,69 @@ export const validateConfigFile = (configFile: ConfigFile): void => {
   })
 
   if (matchingEvents.length > 0) {
-    throw new Error(
+    core.error(
       "Duplicative config found. Make sure that your actions don't apply on the same event and the same columnId as another one"
     )
   }
 }
 
 export const getEventType = (eventName: EventName): EventType | undefined => {
-  if (eventName === 'push') return undefined
+  const eventNameHandlers = [
+    {
+      eventName: 'push',
+      eventTypeHandler: undefined
+    },
+    {
+      eventName: 'pull_request',
+      eventTypeHandler: zPullRequestEventType
+    },
+    {
+      eventName: 'pull_request_review',
+      eventTypeHandler: zPullRequestReviewEventType
+    },
+    {
+      eventName: 'release',
+      eventTypeHandler: zReleaseEventType
+    }
+  ]
 
-  if (
-    eventName === 'pull_request_review' ||
-    eventName === 'pull_request' ||
-    eventName === 'release'
-  ) {
-    const pullRequestReviewType = github.context.payload.action as EventType
-    return pullRequestReviewType
+  const getEventTypeParseErrorHandler = (
+    options: (EventType | EventName)[],
+    eventType?: EventType | string
+  ): undefined => {
+    core.error(
+      `${
+        eventType ? `The type ${eventType} on ${eventName}` : eventName
+      } is not supported, please file an issue at https://github.com/kpm-tools/shortcut-action/issues if you would like to see support for this event`
+    )
+    core.error(`Valid events are: ${options}`)
+
+    return undefined
   }
+
+  const zEventNameResults = zEventName.safeParse(eventName)
+
+  if (!zEventNameResults.success) {
+    return getEventTypeParseErrorHandler(zEventName.options, undefined)
+  }
+
+  const eventNameHandler = eventNameHandlers.find(
+    event => event.eventName === eventName
+  )
+
+  if (!eventNameHandler?.eventTypeHandler) return undefined
+
+  const eventType = github.context.payload.action as EventType
+  const zParseResults = eventNameHandler.eventTypeHandler.safeParse(eventType)
+
+  if (!zParseResults.success) {
+    return getEventTypeParseErrorHandler(
+      eventNameHandler.eventTypeHandler.options,
+      eventType
+    )
+  }
+
+  return eventType
 }
 
 export const getBranchBasedOnEventName = async (
