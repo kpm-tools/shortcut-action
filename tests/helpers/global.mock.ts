@@ -6,7 +6,8 @@ export const octokit = {
       getCommit: jest.fn()
     },
     pulls: {
-      get: jest.fn()
+      get: jest.fn(),
+      update: jest.fn()
     }
   }
 }

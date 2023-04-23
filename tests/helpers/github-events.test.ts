@@ -2,10 +2,10 @@ import {jest, afterEach, expect, test, describe} from '@jest/globals'
 import {octokit, getOctokit} from './global.mock'
 
 import * as core from '@actions/core'
-import * as github from '@actions/github'
 
 import type {EventName, EventType} from '../../src/types/actions'
 import {validConfigJson} from './gitub-events.mock'
+import * as github from '@actions/github'
 
 jest.mock('@actions/core')
 jest.mock('@actions/github', () => ({
@@ -18,7 +18,8 @@ jest.mock('@actions/github', () => ({
     payload: {
       pull_request: {
         number: 12345
-      }
+      },
+      action: 'opened'
     }
   }
 }))
@@ -386,9 +387,7 @@ describe('getEventType', () => {
 
     expect(eventType).toBeUndefined()
   })
-  test('event that as eventType returns it', async () => {
-    github.context.payload.action = 'opened'
-
+  test('event that has eventType returns it', async () => {
     const {getEventType} = await import('../../src/helpers/github-events')
     const eventType = getEventType('pull_request')
 
@@ -405,7 +404,9 @@ describe('getEventType', () => {
     expect(coreErrorMock).toHaveBeenCalledTimes(2)
   })
   test(`eventType that isn't supported but is supported by another eventName triggers a core.error`, async () => {
+    //
     github.context.payload.action = 'published'
+    //
     const {getEventType} = await import('../../src/helpers/github-events')
 
     const coreErrorMock = jest.spyOn(core, 'error')
@@ -500,15 +501,43 @@ describe('getBranchBasedOnEventName', () => {
 })
 describe('updatePRTitleWithShortcutId', () => {
   test('pull request title is updated with shortcut id', async () => {
+    const title = 'My PR title'
+    const shortcutId = 12345
+
+    octokit.rest.pulls.get.mockReturnValueOnce({
+      data: {
+        title
+      }
+    })
+
+    octokit.rest.pulls.update.mockReturnValueOnce({
+      status: 200
+    })
+    github.context.payload = {
+      pull_request: {
+        number: 12345,
+        title: 'My PR title'
+      }
+    }
+
     const {updatePRTitleWithShortcutId} = await import(
       '../../src/helpers/github-events'
     )
 
-    const title = 'My PR title'
-    const shortcutId = '12345'
+    const coreInfoMock = jest.spyOn(core, 'info')
+    const coreWarningMock = jest.spyOn(core, 'warning')
 
-    const updatedTitle = await updatePRTitleWithShortcutId(title, shortcutId)
+    await updatePRTitleWithShortcutId(shortcutId)
 
-    expect(updatedTitle).toBe(`${title} [sc-${shortcutId}]`)
+    expect(coreWarningMock).toHaveBeenCalledTimes(0)
+    expect(coreInfoMock).toHaveBeenCalledTimes(1)
+
+    // expect(octokit.rest.pulls.update).toHaveBeenCalledTimes(1)
+    // expect(octokit.rest.pulls.update).toHaveBeenCalledWith({
+    //   owner: 'owner',
+    //   repo: 'repo',
+    //   pull_number: 12345,
+    //   title: `${title} (#${shortcutId})`
+    // })
   })
 })

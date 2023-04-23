@@ -8,7 +8,6 @@ import {
   EventName,
   Branch,
   zEventName,
-  zEventType,
   zPullRequestEventType,
   zPullRequestReviewEventType,
   zReleaseEventType
