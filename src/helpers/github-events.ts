@@ -208,6 +208,9 @@ export const getBranchBasedOnEventName = async (
   eventName: EventName
 ): Promise<Branch> => {
   if (eventName === 'push') {
+    if (!github.context.ref) {
+      return ''
+    }
     return github.context.ref.replace('refs/heads/', '')
   }
 
@@ -215,19 +218,18 @@ export const getBranchBasedOnEventName = async (
     const token = core.getInput('GITHUB_TOKEN')
     const octokit = github.getOctokit(token)
 
-    if (github.context.payload.pull_request?.number) {
-      const response = await octokit.rest.pulls.get({
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        pull_number: github.context.payload.pull_request.number
-      })
+    if (!github.context.payload.pull_request?.number) return ''
+    const response = await octokit.rest.pulls.get({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      pull_number: github.context.payload.pull_request.number
+    })
 
-      const branch = response.data.head.ref
+    const branch = response.data.head.ref
 
-      return branch
-    }
+    return branch
   }
-
+  core.error(`${eventName} is not supported`)
   return ''
 }
 

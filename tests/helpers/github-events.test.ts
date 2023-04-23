@@ -1,4 +1,6 @@
 import {jest, afterEach, expect, test, describe} from '@jest/globals'
+import {octokit, getOctokit} from './global.mock'
+
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 
@@ -6,7 +8,20 @@ import type {EventName, EventType} from '../../src/types/actions'
 import {validConfigJson} from './gitub-events.mock'
 
 jest.mock('@actions/core')
-jest.mock('@actions/github')
+jest.mock('@actions/github', () => ({
+  getOctokit,
+  context: {
+    repo: {
+      owner: 'owner',
+      repo: 'repo'
+    },
+    payload: {
+      pull_request: {
+        number: 12345
+      }
+    }
+  }
+}))
 
 afterEach(() => {
   jest.clearAllMocks()
@@ -397,5 +412,90 @@ describe('getEventType', () => {
     getEventType('pull_request')
 
     expect(coreErrorMock).toHaveBeenCalledTimes(2)
+  })
+})
+describe('getBranchBasedOnEventName', () => {
+  test(`push event that has a branch and returns it`, async () => {
+    github.context.ref = 'refs/heads/main'
+    const {getBranchBasedOnEventName} = await import(
+      '../../src/helpers/github-events'
+    )
+
+    const branch = await getBranchBasedOnEventName('push')
+
+    expect(branch).toBe('main')
+  })
+  test('push event that has no branch and returns undefined', async () => {
+    // @ts-ignore
+    github.context.ref = undefined
+    const {getBranchBasedOnEventName} = await import(
+      '../../src/helpers/github-events'
+    )
+
+    const branch = await getBranchBasedOnEventName('push')
+
+    expect(branch).toBe('')
+  })
+  test('pull_request event that has a branch and returns it', async () => {
+    if (github.context.payload.pull_request !== undefined) {
+      github.context.payload.pull_request.number = 12345
+    }
+
+    const {getBranchBasedOnEventName} = await import(
+      '../../src/helpers/github-events'
+    )
+
+    octokit.rest.pulls.get.mockReturnValueOnce({
+      data: {
+        head: {
+          ref: 'main'
+        }
+      }
+    })
+
+    const branch = await getBranchBasedOnEventName('pull_request')
+
+    expect(branch).toBe('main')
+  })
+  test('pull_request event that has no branch and returns undefined', async () => {
+    github.context.payload.pull_request = undefined
+    const {getBranchBasedOnEventName} = await import(
+      '../../src/helpers/github-events'
+    )
+    const branch = await getBranchBasedOnEventName('pull_request')
+
+    expect(branch).toBe('')
+  })
+  test('pull_request event that has a branch but fails to get it returns undefined', async () => {
+    if (github.context.payload.pull_request !== undefined) {
+      github.context.payload.pull_request.number = 12345
+    }
+    const {getBranchBasedOnEventName} = await import(
+      '../../src/helpers/github-events'
+    )
+
+    octokit.rest.pulls.get.mockReturnValueOnce({
+      data: {
+        head: {
+          ref: undefined
+        }
+      }
+    })
+
+    const branch = await getBranchBasedOnEventName('pull_request')
+
+    expect(branch).toBe('')
+  })
+  test('an invalid evenetName is passed and triggers a core.error and returns undefined', async () => {
+    const {getBranchBasedOnEventName} = await import(
+      '../../src/helpers/github-events'
+    )
+
+    const coreErrorMock = jest.spyOn(core, 'error')
+    // @ts-ignore
+    const branch = await getBranchBasedOnEventName('invalid_event_name')
+
+    expect(coreErrorMock).toHaveBeenCalledTimes(1)
+    expect(branch).toBe('')
   })
 })

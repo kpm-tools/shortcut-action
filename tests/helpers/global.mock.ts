@@ -4,6 +4,9 @@ export const octokit = {
   rest: {
     repos: {
       getCommit: jest.fn()
+    },
+    pulls: {
+      get: jest.fn()
     }
   }
 }
