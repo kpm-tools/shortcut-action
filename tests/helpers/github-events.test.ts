@@ -486,13 +486,12 @@ describe('getBranchBasedOnEventName', () => {
 
     expect(branch).toBe('')
   })
-  test('an invalid evenetName is passed and triggers a core.error and returns undefined', async () => {
-    const {getBranchBasedOnEventName} = await import(
-      '../../src/helpers/github-events'
-    )
+  test('an invalid event name is passed, triggers a core.error and returns an empty string', async () => {
+    const {
+      getBranchBasedOnEventName
+    } = require('../../src/helpers/github-events')
 
     const coreErrorMock = jest.spyOn(core, 'error')
-    // @ts-ignore
     const branch = await getBranchBasedOnEventName('invalid_event_name')
 
     expect(coreErrorMock).toHaveBeenCalledTimes(1)
