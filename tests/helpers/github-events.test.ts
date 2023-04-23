@@ -498,3 +498,17 @@ describe('getBranchBasedOnEventName', () => {
     expect(branch).toBe('')
   })
 })
+describe('updatePRTitleWithShortcutId', () => {
+  test('pull request title is updated with shortcut id', async () => {
+    const {updatePRTitleWithShortcutId} = await import(
+      '../../src/helpers/github-events'
+    )
+
+    const title = 'My PR title'
+    const shortcutId = '12345'
+
+    const updatedTitle = await updatePRTitleWithShortcutId(title, shortcutId)
+
+    expect(updatedTitle).toBe(`${title} [sc-${shortcutId}]`)
+  })
+})
