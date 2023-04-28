@@ -12,7 +12,6 @@ import {
   zPullRequestReviewEventType,
   zReleaseEventType
 } from '../types/actions'
-import {warn} from 'console'
 
 export const getColumnIdForAction = (
   githubActionEvent: GitHubActionEvent,

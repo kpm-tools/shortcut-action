@@ -11,7 +11,7 @@ inputs:
     required: true
   configuration_file:
     description: 'Path to configuration file'
-    required: true
+    required: false
 
 runs:
   using: 'node16'

@@ -35,6 +35,7 @@ const getConfiguration = async (
 
   const token = core.getInput('GITHUB_TOKEN')
   const octokit = github.getOctokit(token)
+  core.error(JSON.stringify(octokit))
 
   const response = await octokit.rest.repos.getContent({
     owner,
@@ -42,6 +43,8 @@ const getConfiguration = async (
     path: repoConfigPath,
     ref: github.context.sha
   })
+
+  core.error(JSON.stringify(response))
 
   return JSON.parse(
     // TS doesn't like this, but it's correct, so we'll ignore it ¯\_(ツ)_/¯
@@ -62,10 +65,11 @@ async function run(): Promise<void> {
     const CONFIGURATION_FILE =
       core.getInput('configuration_file') || DEFAULT_CONFIGURATION_FILE
     if (!CONFIGURATION_FILE) throw new Error('configuration_file is required.')
-
+    core.error('hello')
     const CONFIGURATION: ConfigFile = await getConfiguration(CONFIGURATION_FILE)
     if (!CONFIGURATION) throw new Error('No configuration  was found')
     validateConfigFile(CONFIGURATION)
+    core.error('bye')
 
     const EVENT_NAME: EventName = github.context.eventName as EventName
     const EVENT_TYPE: EventType | undefined = getEventType(EVENT_NAME)
@@ -137,7 +141,10 @@ async function run(): Promise<void> {
 
     core.info('No shortcut story found to update')
   } catch (error) {
-    if (error instanceof Error) core.setFailed(error.message)
+    if (error instanceof Error) {
+      core.error(error)
+      core.setFailed(error.message)
+    }
   }
 }
 

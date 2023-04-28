@@ -1,5 +1,5 @@
 {
-  "name": "@kpm-tools/shortcut-action",
+  "name": "kpm-tools/shortcut-action",
   "version": "0.0.1",
   "private": true,
   "description": "Automate story movement in Shortcut",
@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/actions/typescript-action.git"
+    "url": "git+https://github.com/kpm-tools/shortcut-action.git"
   },
   "keywords": [
     "actions",
