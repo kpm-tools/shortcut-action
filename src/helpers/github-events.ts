@@ -12,6 +12,7 @@ import {
   zPullRequestReviewEventType,
   zReleaseEventType
 } from '../types/actions'
+import {warn} from 'console'
 
 export const getColumnIdForAction = (
   githubActionEvent: GitHubActionEvent,
@@ -38,11 +39,16 @@ export const getColumnIdForAction = (
   }
 
   for (const validEvent of configFile.validEvents) {
-    const matchingEvent: ConfigFileEvent[] = validEvent.events.filter(
-      event =>
-        event.eventName === githubActionEvent.eventName &&
-        event.eventType === githubActionEvent.eventType
-    )
+    const matchingEvent: ConfigFileEvent[] = validEvent.events.filter(event => {
+      if (
+        event.eventName === githubActionEvent?.eventName &&
+        (!githubActionEvent?.eventType ||
+          event.eventType === githubActionEvent.eventType)
+      ) {
+        return true
+      }
+      return false
+    })
 
     if (
       matchingEvent.length > 0 &&
