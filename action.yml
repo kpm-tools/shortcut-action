@@ -1,8 +1,9 @@
 name: kpm-tools/shortcut-action
 description: Automate story movement in Shortcut
-icon: check-square
-color: blue
 author: kpm-tools
+branding:
+  color: blue
+  icon: check-square
 
 inputs:
   SHORTCUT_TOKEN:
