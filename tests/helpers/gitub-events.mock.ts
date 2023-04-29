@@ -27,7 +27,7 @@ export const validConfigJson: ConfigFile = {
       events: [
         {
           eventName: 'pull_request_review',
-          eventType: 'approved'
+          eventType: 'submitted'
         }
       ],
       branches: ['feature/*', 'bug/*', 'chore/*'],

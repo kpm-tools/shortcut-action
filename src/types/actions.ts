@@ -29,13 +29,9 @@ export const zPullRequestEventType = z.enum([
   'auto_merge_disabled'
 ])
 export const zPullRequestReviewEventType = z.enum([
-  'published',
-  'unpublished',
-  'created',
+  'submitted',
   'edited',
-  'deleted',
-  'prereleased',
-  'released'
+  'dismissed'
 ])
 export const zReleaseEventType = z.enum(['published'])
 export const zEventType = z.union([

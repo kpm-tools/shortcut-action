@@ -36,7 +36,7 @@ describe('getColumnIdAndColumnNameForAction', () => {
     const column = getColumnIdAndColumnNameForAction(
       {
         eventName: 'pull_request_review',
-        eventType: 'approved',
+        eventType: 'submitted',
         branch: 'feature/sc-12345-ai-feature'
       },
       validConfigJson
@@ -97,7 +97,7 @@ describe('getColumnIdAndColumnNameForAction', () => {
     const column = getColumnIdAndColumnNameForAction(
       {
         eventName: 'pull_request_review',
-        eventType: 'approved',
+        eventType: 'submitted',
         branch: 'invalid_branch'
       },
       validConfigJson
@@ -113,7 +113,7 @@ describe('getColumnIdAndColumnNameForAction', () => {
       // @ts-ignore
       {
         eventName: 'pull_request_review',
-        eventType: 'approved'
+        eventType: 'submitted'
       },
       validConfigJson
     )
@@ -129,7 +129,7 @@ describe('getColumnIdAndColumnNameForAction', () => {
     getColumnIdAndColumnNameForAction(
       // @ts-ignore
       {
-        eventType: 'approved'
+        eventType: 'submitted'
       },
       validConfigJson
     )

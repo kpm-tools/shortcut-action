@@ -18,7 +18,7 @@ on:
             - synchronize
     pull_request_review:
         types:
-            - approved
+            - submitted
     push:
         branches:
             - staging
@@ -72,7 +72,7 @@ Example config file (hosted at .gitub/shortcut_configuration.json):
       "events": [
         {
           "eventName": "pull_request_review",
-          "eventType": "approved"
+          "eventType": "submitted"
         }
       ],
       "branches": ["feature/*", "bug/*", "chore/*"],
