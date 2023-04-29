@@ -1,6 +1,6 @@
 # @kpm-tools/shortcut-action
 
-![Unit Tests](https://github.com/kpm-tools/shortcut-action/actions/workflows/main.yml/badge.svg?branch=main)
+![Unit Tests](https://github.com/kpm-tools/shortcut-action/actions/workflows/tests.yml/badge.svg?branch=chore/initial-tests)
 
 # Setup
 
