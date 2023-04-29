@@ -9,8 +9,34 @@ export const zEventName = z.enum([
 
 export type EventName = z.infer<typeof zEventName>
 
-export const zPullRequestEventType = z.enum(['opened', 'closed', 'reopened'])
-export const zPullRequestReviewEventType = z.enum(['approved'])
+export const zPullRequestEventType = z.enum([
+  'assigned',
+  'unassigned',
+  'labeled',
+  'unlabeled',
+  'opened',
+  'edited',
+  'closed',
+  'reopened',
+  'synchronize',
+  'converted_to_draft',
+  'ready_for_review',
+  'locked',
+  'unlocked',
+  'review_requested',
+  'review_request_removed',
+  'auto_merge_enabled',
+  'auto_merge_disabled'
+])
+export const zPullRequestReviewEventType = z.enum([
+  'published',
+  'unpublished',
+  'created',
+  'edited',
+  'deleted',
+  'prereleased',
+  'released'
+])
 export const zReleaseEventType = z.enum(['published'])
 export const zEventType = z.union([
   zPullRequestEventType,
