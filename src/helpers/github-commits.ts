@@ -25,7 +25,7 @@ export const getShortcutIdMessageFromSha = async (
     }
   }
 
-  const commitMessage = extractStoryIdFromString(response.data.commit.message)
+  const shortcutId = extractStoryIdFromString(response.data.commit.message)
 
-  return commitMessage
+  return shortcutId
 }

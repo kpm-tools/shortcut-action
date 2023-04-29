@@ -6,7 +6,7 @@ import {getShortcutIdFromBranchName} from './helpers/shortcut'
 
 import {
   validateConfigFile,
-  getColumnIdForAction,
+  getColumnIdAndColumnNameForAction,
   getEventType,
   getBranchBasedOnEventName,
   updatePRTitleWithShortcutId
@@ -24,7 +24,7 @@ import {
 } from './types/actions'
 
 const DEFAULT_BRANCH_PATTERN = /sc-(\d+)/
-const DEFAULT_CONFIGURATION_FILE = '.github/shortcut-workflow.json'
+const DEFAULT_CONFIGURATION_FILE = '.github/shortcut_configuration.json'
 
 const getConfiguration = async (
   repoConfigPath: string
@@ -86,7 +86,10 @@ async function run(): Promise<void> {
       githubActionEvent.eventType = EVENT_TYPE
     }
 
-    const columnId = getColumnIdForAction(githubActionEvent, CONFIGURATION)
+    const column = getColumnIdAndColumnNameForAction(
+      githubActionEvent,
+      CONFIGURATION
+    )
 
     const shortcutStoryIdFromBranch = getShortcutIdFromBranchName(
       githubActionEvent.branch,
@@ -101,10 +104,14 @@ async function run(): Promise<void> {
 
     if (
       shortcutId &&
-      (EVENT_NAME === 'pull_request' || EVENT_NAME === 'pull_request_review')
+      (EVENT_NAME === 'pull_request' ||
+        EVENT_NAME === 'pull_request_review' ||
+        EVENT_NAME === 'push')
     ) {
-      updatePRTitleWithShortcutId(shortcutId)
-      core.info(`PR title updated with Shortcut story id ${shortcutId}`)
+      const updated = await updatePRTitleWithShortcutId(shortcutId)
+      if (updated) {
+        core.info(`PR title updated with Shortcut story id ${shortcutId}`)
+      }
     }
 
     let shortcutIds = null
@@ -126,9 +133,13 @@ async function run(): Promise<void> {
         shortcutIds.map(id => {
           if (id) {
             shortcut.updateStory(id, {
-              workflow_state_id: columnId
+              workflow_state_id: column?.columnId
             })
-            core.info(`Shortcut story ${id} updated, to columnId ${columnId}`)
+            core.info(
+              `Shortcut story ${id} updated, to ${
+                column?.columnName || column?.columnId
+              }`
+            )
           }
         })
       )
@@ -137,7 +148,10 @@ async function run(): Promise<void> {
 
     core.info('No shortcut story found to update')
   } catch (error) {
-    if (error instanceof Error) core.setFailed(error.message)
+    if (error instanceof Error) {
+      core.error(error)
+      core.setFailed(error.message)
+    }
   }
 }
 

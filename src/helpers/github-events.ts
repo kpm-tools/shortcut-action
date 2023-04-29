@@ -6,13 +6,26 @@ import {
   GitHubActionEvent,
   EventType,
   EventName,
-  Branch
+  Branch,
+  zEventName,
+  zPullRequestEventType,
+  zPullRequestReviewEventType,
+  zReleaseEventType
 } from '../types/actions'
 
-export const getColumnIdForAction = (
+export const getColumnIdAndColumnNameForAction = (
   githubActionEvent: GitHubActionEvent,
   configFile: ConfigFile
-): number | undefined => {
+): {columnId: number; columnName?: string} | undefined => {
+  if (!githubActionEvent?.branch) {
+    core.error('A branch name is required')
+    return undefined
+  }
+  if (!githubActionEvent?.eventName) {
+    core.error('An event name is required')
+    return undefined
+  }
+
   const isRegexMatch = (branches: string[], currentBranch: string): boolean => {
     for (const branch of branches) {
       const regexString = `${branch}`
@@ -25,26 +38,35 @@ export const getColumnIdForAction = (
   }
 
   for (const validEvent of configFile.validEvents) {
-    const matchingEvent: ConfigFileEvent[] = validEvent.events.filter(
-      event =>
-        event.eventName === githubActionEvent.eventName &&
-        (!event.eventTypes ||
-          !githubActionEvent.eventType ||
-          event.eventTypes.includes(githubActionEvent.eventType))
-    )
+    const matchingEvent: ConfigFileEvent[] = validEvent.events.filter(event => {
+      if (
+        event.eventName === githubActionEvent?.eventName &&
+        (!githubActionEvent?.eventType ||
+          event.eventType === githubActionEvent.eventType)
+      ) {
+        return true
+      }
+      return false
+    })
 
     if (
       matchingEvent.length > 0 &&
       (validEvent.branches.includes(githubActionEvent.branch) ||
         isRegexMatch(validEvent.branches, githubActionEvent.branch))
     ) {
-      return parseInt(validEvent.columnId)
+      return {
+        columnId: parseInt(validEvent.columnId),
+        columnName: validEvent.columnName
+      }
     }
   }
   return undefined
 }
 
 export const validateConfigFile = (configFile: ConfigFile): void => {
+  if (!configFile) {
+    return core.error('No config file was passed')
+  }
   const doMatchingValuesExist = <ArrayType>({
     sourceArray,
     matcherArray
@@ -79,35 +101,43 @@ export const validateConfigFile = (configFile: ConfigFile): void => {
       })
     })
 
-    const matchingEventTypes = otherEventsArray.some(otherEvents => {
-      return otherEvents.events.some(otherEvent => {
-        return validEvent.events.some(event => {
+    const matchingEventType = otherEventsArray.some(otherEvents => {
+      return validEvent.events.some(event => {
+        return otherEvents.events.some(otherEvent => {
           return (
-            !event.eventTypes ||
-            !otherEvent?.eventTypes ||
+            !event?.eventType ||
+            !otherEvent?.eventType ||
             doMatchingValuesExist<EventType>({
-              sourceArray: event.eventTypes,
-              matcherArray: otherEvent.eventTypes
+              sourceArray: [event.eventType],
+              matcherArray: [otherEvent.eventType]
             })
           )
         })
       })
     })
 
-    const matchingBranches = otherEventsArray.some(otherEvents => {
-      return doMatchingValuesExist<Branch>({
-        sourceArray: validEvent.branches,
-        matcherArray: otherEvents.branches
-      })
+    const matchingBranches = otherEventsArray.some(otherEvent => {
+      return (
+        !validEvent?.branches ||
+        validEvent?.branches?.length > 0 ||
+        doMatchingValuesExist<Branch>({
+          sourceArray: validEvent.branches,
+          matcherArray: otherEvent.branches
+        })
+      )
     })
 
-    const matchingColumnId = otherEventsArray.some(otherEvents => {
-      return otherEvents.columnId === validEvent.columnId
+    const matchingColumnId = otherEventsArray.some(otherEvent => {
+      return (
+        !validEvent?.columnId ||
+        !otherEvent?.columnId ||
+        otherEvent.columnId === validEvent.columnId
+      )
     })
 
     const matched = areAllMatchesTruthy([
       matchingName,
-      matchingEventTypes,
+      matchingEventType,
       matchingBranches,
       matchingColumnId
     ])
@@ -116,29 +146,78 @@ export const validateConfigFile = (configFile: ConfigFile): void => {
   })
 
   if (matchingEvents.length > 0) {
-    throw new Error(
+    core.error(
       "Duplicative config found. Make sure that your actions don't apply on the same event and the same columnId as another one"
     )
   }
 }
 
 export const getEventType = (eventName: EventName): EventType | undefined => {
-  if (eventName === 'push') return undefined
+  const eventNameHandlers = [
+    {
+      eventName: 'push',
+      eventTypeHandler: undefined
+    },
+    {
+      eventName: 'pull_request',
+      eventTypeHandler: zPullRequestEventType
+    },
+    {
+      eventName: 'pull_request_review',
+      eventTypeHandler: zPullRequestReviewEventType
+    },
+    {
+      eventName: 'release',
+      eventTypeHandler: zReleaseEventType
+    }
+  ]
 
-  if (
-    eventName === 'pull_request_review' ||
-    eventName === 'pull_request' ||
-    eventName === 'release'
-  ) {
-    const pullRequestReviewType = github.context.payload.action as EventType
-    return pullRequestReviewType
+  const getEventTypeParseErrorHandler = (
+    options: (EventType | EventName)[],
+    eventType?: EventType | string
+  ): undefined => {
+    core.error(
+      `${
+        eventType ? `The type ${eventType} on ${eventName}` : eventName
+      } is not supported, please file an issue at https://github.com/kpm-tools/shortcut-action/issues if you would like to see support for this event`
+    )
+    core.error(`Valid events are: ${options}`)
+
+    return undefined
   }
+
+  const zEventNameResults = zEventName.safeParse(eventName)
+
+  if (!zEventNameResults.success) {
+    return getEventTypeParseErrorHandler(zEventName.options, undefined)
+  }
+
+  const eventNameHandler = eventNameHandlers.find(
+    event => event.eventName === eventName
+  )
+
+  if (!eventNameHandler?.eventTypeHandler) return undefined
+
+  const eventType = github.context.payload.action as EventType
+  const zParseResults = eventNameHandler.eventTypeHandler.safeParse(eventType)
+
+  if (!zParseResults.success && eventType !== undefined) {
+    return getEventTypeParseErrorHandler(
+      eventNameHandler.eventTypeHandler.options,
+      eventType
+    )
+  }
+
+  return eventType
 }
 
 export const getBranchBasedOnEventName = async (
   eventName: EventName
 ): Promise<Branch> => {
   if (eventName === 'push') {
+    if (!github.context.ref) {
+      return ''
+    }
     return github.context.ref.replace('refs/heads/', '')
   }
 
@@ -146,25 +225,25 @@ export const getBranchBasedOnEventName = async (
     const token = core.getInput('GITHUB_TOKEN')
     const octokit = github.getOctokit(token)
 
-    if (github.context.payload.pull_request?.number) {
-      const response = await octokit.rest.pulls.get({
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        pull_number: github.context.payload.pull_request.number
-      })
+    if (!github.context.payload.pull_request?.number) return ''
 
-      const branch = response.data.head.ref
+    const response = await octokit.rest.pulls.get({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      pull_number: github.context.payload.pull_request.number
+    })
 
-      return branch
-    }
+    const branch = response.data.head.ref
+
+    return branch
   }
-
+  core.error(`${eventName} is not supported`)
   return ''
 }
 
 export const updatePRTitleWithShortcutId = async (
   shortcutId: number
-): Promise<void> => {
+): Promise<boolean> => {
   const token = core.getInput('GITHUB_TOKEN')
   const octokit = github.getOctokit(token)
 
@@ -175,7 +254,7 @@ export const updatePRTitleWithShortcutId = async (
       pull_number: github.context.payload.pull_request.number
     })
 
-    if (getResponse.data.title.includes(`[sc-${shortcutId}]`)) return
+    if (getResponse.data.title.includes(`[sc-${shortcutId}]`)) return false
 
     const title = `${getResponse.data.title} [sc-${shortcutId}]`
 
@@ -188,9 +267,12 @@ export const updatePRTitleWithShortcutId = async (
 
     if (updateResponse.status !== 200) {
       core.warning('PR title could not be updated')
-      return
+      return false
     }
 
     core.info(`PR title updated to: ${title}`)
+    return true
   }
+
+  return false
 }
