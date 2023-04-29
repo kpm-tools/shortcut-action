@@ -108,11 +108,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.updatePRTitleWithShortcutId = exports.getBranchBasedOnEventName = exports.getEventType = exports.validateConfigFile = exports.getColumnIdForAction = void 0;
+exports.updatePRTitleWithShortcutId = exports.getBranchBasedOnEventName = exports.getEventType = exports.validateConfigFile = exports.getColumnIdAndColumnNameForAction = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const actions_1 = __nccwpck_require__(4799);
-const getColumnIdForAction = (githubActionEvent, configFile) => {
+const getColumnIdAndColumnNameForAction = (githubActionEvent, configFile) => {
     if (!(githubActionEvent === null || githubActionEvent === void 0 ? void 0 : githubActionEvent.branch)) {
         core.error('A branch name is required');
         return undefined;
@@ -142,12 +142,15 @@ const getColumnIdForAction = (githubActionEvent, configFile) => {
         if (matchingEvent.length > 0 &&
             (validEvent.branches.includes(githubActionEvent.branch) ||
                 isRegexMatch(validEvent.branches, githubActionEvent.branch))) {
-            return parseInt(validEvent.columnId);
+            return {
+                columnId: parseInt(validEvent.columnId),
+                columnName: validEvent.columnName
+            };
         }
     }
     return undefined;
 };
-exports.getColumnIdForAction = getColumnIdForAction;
+exports.getColumnIdAndColumnNameForAction = getColumnIdAndColumnNameForAction;
 const validateConfigFile = (configFile) => {
     if (!configFile) {
         return core.error('No config file was passed');
@@ -491,7 +494,7 @@ function run() {
             if (EVENT_TYPE) {
                 githubActionEvent.eventType = EVENT_TYPE;
             }
-            const columnId = (0, github_events_1.getColumnIdForAction)(githubActionEvent, CONFIGURATION);
+            const column = (0, github_events_1.getColumnIdAndColumnNameForAction)(githubActionEvent, CONFIGURATION);
             const shortcutStoryIdFromBranch = (0, shortcut_1.getShortcutIdFromBranchName)(githubActionEvent.branch, BRANCH_PATTERN);
             const shortcutIdFromSha = yield (0, github_commits_1.getShortcutIdMessageFromSha)(github.context.sha);
             const shortcutId = shortcutStoryIdFromBranch || shortcutIdFromSha || null;
@@ -516,18 +519,14 @@ function run() {
             }
             const shortcut = new client_1.ShortcutClient(SHORTCUT_TOKEN);
             if (shortcutIds) {
-                yield Promise.all(shortcutIds.map((id) => __awaiter(this, void 0, void 0, function* () {
+                yield Promise.all(shortcutIds.map(id => {
                     if (id) {
-                        shortcut
-                            .updateStory(id, {
-                            workflow_state_id: columnId
-                        })
-                            .then(response => {
-                            core.info(JSON.stringify(response === null || response === void 0 ? void 0 : response.data));
+                        shortcut.updateStory(id, {
+                            workflow_state_id: column === null || column === void 0 ? void 0 : column.columnId
                         });
-                        core.info(`Shortcut story ${id} updated, to columnId ${columnId}`);
+                        core.info(`Shortcut story ${id} updated, to ${(column === null || column === void 0 ? void 0 : column.columnName) || (column === null || column === void 0 ? void 0 : column.columnId)}`);
                     }
-                })));
+                }));
                 return;
             }
             core.info('No shortcut story found to update');
