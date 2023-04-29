@@ -109,7 +109,7 @@ Example config file (hosted at .gitub/shortcut_configuration.json):
 - pull_request
 - release
 
-* If you would like support for another action type, please file an issue [https://github.com/kpm-tools/shortcut-action/issues](https://github.com/kpm-tools/shortcut-action/issues)
+If you would like support for another action type, please file an issue [https://github.com/kpm-tools/shortcut-action/issues](https://github.com/kpm-tools/shortcut-action/issues)
 
 # Known Limitations
 
