@@ -558,8 +558,30 @@ exports.zEventName = zod_1.z.enum([
     'pull_request_review',
     'release'
 ]);
-exports.zPullRequestEventType = zod_1.z.enum(['opened', 'closed', 'reopened']);
-exports.zPullRequestReviewEventType = zod_1.z.enum(['approved']);
+exports.zPullRequestEventType = zod_1.z.enum([
+    'assigned',
+    'unassigned',
+    'labeled',
+    'unlabeled',
+    'opened',
+    'edited',
+    'closed',
+    'reopened',
+    'synchronize',
+    'converted_to_draft',
+    'ready_for_review',
+    'locked',
+    'unlocked',
+    'review_requested',
+    'review_request_removed',
+    'auto_merge_enabled',
+    'auto_merge_disabled'
+]);
+exports.zPullRequestReviewEventType = zod_1.z.enum([
+    'submitted',
+    'edited',
+    'dismissed'
+]);
 exports.zReleaseEventType = zod_1.z.enum(['published']);
 exports.zEventType = zod_1.z.union([
     exports.zPullRequestEventType,
