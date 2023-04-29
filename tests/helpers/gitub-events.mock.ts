@@ -10,7 +10,8 @@ export const validConfigJson: ConfigFile = {
         }
       ],
       branches: ['main'],
-      columnId: '500000011'
+      columnId: '500000011',
+      columnName: 'Released'
     },
     {
       events: [
@@ -19,7 +20,8 @@ export const validConfigJson: ConfigFile = {
         }
       ],
       branches: ['staging'],
-      columnId: '500000009'
+      columnId: '500000009',
+      columnName: 'Ready For Release'
     },
     {
       events: [
@@ -29,7 +31,8 @@ export const validConfigJson: ConfigFile = {
         }
       ],
       branches: ['feature/*', 'bug/*', 'chore/*'],
-      columnId: '500000060'
+      columnId: '500000060',
+      columnName: 'QA'
     },
     {
       events: [
@@ -38,7 +41,8 @@ export const validConfigJson: ConfigFile = {
         }
       ],
       branches: ['feature/*', 'bug/*', 'chore/*'],
-      columnId: '500001600'
+      columnId: '500001600',
+      columnName: 'In Review'
     },
     {
       events: [
@@ -47,7 +51,8 @@ export const validConfigJson: ConfigFile = {
         }
       ],
       branches: ['feature/*', 'bug/*', 'chore/*'],
-      columnId: '500000006'
+      columnId: '500000006',
+      columnName: 'In Progress'
     }
   ]
 }

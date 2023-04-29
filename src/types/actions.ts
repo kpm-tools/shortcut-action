@@ -43,6 +43,7 @@ export interface ConfigFileItem {
   events: ConfigFileEvent[]
   branches: Branch[]
   columnId: ColumnId
+  columnName?: string
 }
 export interface ConfigFile {
   validEvents: ConfigFileItem[]

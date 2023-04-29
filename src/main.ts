@@ -6,7 +6,7 @@ import {getShortcutIdFromBranchName} from './helpers/shortcut'
 
 import {
   validateConfigFile,
-  getColumnIdForAction,
+  getColumnIdAndColumnNameForAction,
   getEventType,
   getBranchBasedOnEventName,
   updatePRTitleWithShortcutId
@@ -24,7 +24,7 @@ import {
 } from './types/actions'
 
 const DEFAULT_BRANCH_PATTERN = /sc-(\d+)/
-const DEFAULT_CONFIGURATION_FILE = '.github/shortcut-workflow.json'
+const DEFAULT_CONFIGURATION_FILE = '.github/shortcut_configuration.json'
 
 const getConfiguration = async (
   repoConfigPath: string
@@ -35,7 +35,6 @@ const getConfiguration = async (
 
   const token = core.getInput('GITHUB_TOKEN')
   const octokit = github.getOctokit(token)
-  core.error(JSON.stringify(octokit))
 
   const response = await octokit.rest.repos.getContent({
     owner,
@@ -43,8 +42,6 @@ const getConfiguration = async (
     path: repoConfigPath,
     ref: github.context.sha
   })
-
-  core.error(JSON.stringify(response))
 
   return JSON.parse(
     // TS doesn't like this, but it's correct, so we'll ignore it ¯\_(ツ)_/¯
@@ -65,11 +62,10 @@ async function run(): Promise<void> {
     const CONFIGURATION_FILE =
       core.getInput('configuration_file') || DEFAULT_CONFIGURATION_FILE
     if (!CONFIGURATION_FILE) throw new Error('configuration_file is required.')
-    core.error('hello')
+
     const CONFIGURATION: ConfigFile = await getConfiguration(CONFIGURATION_FILE)
     if (!CONFIGURATION) throw new Error('No configuration  was found')
     validateConfigFile(CONFIGURATION)
-    core.error('bye')
 
     const EVENT_NAME: EventName = github.context.eventName as EventName
     const EVENT_TYPE: EventType | undefined = getEventType(EVENT_NAME)
@@ -90,7 +86,10 @@ async function run(): Promise<void> {
       githubActionEvent.eventType = EVENT_TYPE
     }
 
-    const columnId = getColumnIdForAction(githubActionEvent, CONFIGURATION)
+    const column = getColumnIdAndColumnNameForAction(
+      githubActionEvent,
+      CONFIGURATION
+    )
 
     const shortcutStoryIdFromBranch = getShortcutIdFromBranchName(
       githubActionEvent.branch,
@@ -105,10 +104,14 @@ async function run(): Promise<void> {
 
     if (
       shortcutId &&
-      (EVENT_NAME === 'pull_request' || EVENT_NAME === 'pull_request_review')
+      (EVENT_NAME === 'pull_request' ||
+        EVENT_NAME === 'pull_request_review' ||
+        EVENT_NAME === 'push')
     ) {
-      updatePRTitleWithShortcutId(shortcutId)
-      core.info(`PR title updated with Shortcut story id ${shortcutId}`)
+      const updated = await updatePRTitleWithShortcutId(shortcutId)
+      if (updated) {
+        core.info(`PR title updated with Shortcut story id ${shortcutId}`)
+      }
     }
 
     let shortcutIds = null
@@ -130,9 +133,13 @@ async function run(): Promise<void> {
         shortcutIds.map(id => {
           if (id) {
             shortcut.updateStory(id, {
-              workflow_state_id: columnId
+              workflow_state_id: column?.columnId
             })
-            core.info(`Shortcut story ${id} updated, to columnId ${columnId}`)
+            core.info(
+              `Shortcut story ${id} updated, to ${
+                column?.columnName || column?.columnId
+              }`
+            )
           }
         })
       )

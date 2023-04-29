@@ -13,10 +13,10 @@ import {
   zReleaseEventType
 } from '../types/actions'
 
-export const getColumnIdForAction = (
+export const getColumnIdAndColumnNameForAction = (
   githubActionEvent: GitHubActionEvent,
   configFile: ConfigFile
-): number | undefined => {
+): {columnId: number; columnName?: string} | undefined => {
   if (!githubActionEvent?.branch) {
     core.error('A branch name is required')
     return undefined
@@ -54,7 +54,10 @@ export const getColumnIdForAction = (
       (validEvent.branches.includes(githubActionEvent.branch) ||
         isRegexMatch(validEvent.branches, githubActionEvent.branch))
     ) {
-      return parseInt(validEvent.columnId)
+      return {
+        columnId: parseInt(validEvent.columnId),
+        columnName: validEvent.columnName
+      }
     }
   }
   return undefined
@@ -198,7 +201,7 @@ export const getEventType = (eventName: EventName): EventType | undefined => {
   const eventType = github.context.payload.action as EventType
   const zParseResults = eventNameHandler.eventTypeHandler.safeParse(eventType)
 
-  if (!zParseResults.success) {
+  if (!zParseResults.success && eventType !== undefined) {
     return getEventTypeParseErrorHandler(
       eventNameHandler.eventTypeHandler.options,
       eventType
@@ -223,6 +226,7 @@ export const getBranchBasedOnEventName = async (
     const octokit = github.getOctokit(token)
 
     if (!github.context.payload.pull_request?.number) return ''
+
     const response = await octokit.rest.pulls.get({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
@@ -239,7 +243,7 @@ export const getBranchBasedOnEventName = async (
 
 export const updatePRTitleWithShortcutId = async (
   shortcutId: number
-): Promise<void> => {
+): Promise<boolean> => {
   const token = core.getInput('GITHUB_TOKEN')
   const octokit = github.getOctokit(token)
 
@@ -250,7 +254,7 @@ export const updatePRTitleWithShortcutId = async (
       pull_number: github.context.payload.pull_request.number
     })
 
-    if (getResponse.data.title.includes(`[sc-${shortcutId}]`)) return
+    if (getResponse.data.title.includes(`[sc-${shortcutId}]`)) return false
 
     const title = `${getResponse.data.title} [sc-${shortcutId}]`
 
@@ -263,9 +267,12 @@ export const updatePRTitleWithShortcutId = async (
 
     if (updateResponse.status !== 200) {
       core.warning('PR title could not be updated')
-      return
+      return false
     }
 
     core.info(`PR title updated to: ${title}`)
+    return true
   }
+
+  return false
 }

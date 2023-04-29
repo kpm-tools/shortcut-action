@@ -3,7 +3,8 @@ import {jest} from '@jest/globals'
 export const octokit = {
   rest: {
     repos: {
-      getCommit: jest.fn()
+      getCommit: jest.fn(),
+      getLatestRelease: jest.fn()
     },
     pulls: {
       get: jest.fn(),

@@ -28,12 +28,12 @@ afterEach(() => {
   jest.clearAllMocks()
 })
 
-describe('getColumnIdForAction', () => {
+describe('getColumnIdAndColumnNameForAction', () => {
   test('passing a matching event name, event type, and branch produces a column id', async () => {
-    const {getColumnIdForAction} = await import(
+    const {getColumnIdAndColumnNameForAction} = await import(
       '../../src/helpers/github-events'
     )
-    const columnId = getColumnIdForAction(
+    const column = getColumnIdAndColumnNameForAction(
       {
         eventName: 'pull_request_review',
         eventType: 'approved',
@@ -42,13 +42,13 @@ describe('getColumnIdForAction', () => {
       validConfigJson
     )
 
-    expect(columnId).toEqual(500000060)
+    expect(column?.columnId).toEqual(500000060)
   })
   test('passing a matching event name and branch  produces a column id', async () => {
-    const {getColumnIdForAction} = await import(
+    const {getColumnIdAndColumnNameForAction} = await import(
       '../../src/helpers/github-events'
     )
-    const columnId = getColumnIdForAction(
+    const column = getColumnIdAndColumnNameForAction(
       {
         eventName: 'push',
         branch: 'staging'
@@ -56,13 +56,13 @@ describe('getColumnIdForAction', () => {
       validConfigJson
     )
 
-    expect(columnId).toEqual(500000009)
+    expect(column?.columnId).toEqual(500000009)
   })
   test('passing an invalid event name returns undefined', async () => {
-    const {getColumnIdForAction} = await import(
+    const {getColumnIdAndColumnNameForAction} = await import(
       '../../src/helpers/github-events'
     )
-    const columnId = getColumnIdForAction(
+    const column = getColumnIdAndColumnNameForAction(
       {
         // @ts-ignore
         eventName: 'invalid_event_name',
@@ -71,14 +71,14 @@ describe('getColumnIdForAction', () => {
       validConfigJson
     )
 
-    expect(columnId).toBeUndefined()
+    expect(column?.columnId).toBeUndefined()
   })
 
   test('passing a valid eventName and invalid eventType returns undefined', async () => {
-    const {getColumnIdForAction} = await import(
+    const {getColumnIdAndColumnNameForAction} = await import(
       '../../src/helpers/github-events'
     )
-    const columnId = getColumnIdForAction(
+    const column = getColumnIdAndColumnNameForAction(
       {
         eventName: 'pull_request',
         // @ts-ignore
@@ -88,13 +88,13 @@ describe('getColumnIdForAction', () => {
       validConfigJson
     )
 
-    expect(columnId).toBeUndefined()
+    expect(column?.columnId).toBeUndefined()
   })
   test('passing a valid eventName and eventType, and an invalid branch returns undefined', async () => {
-    const {getColumnIdForAction} = await import(
+    const {getColumnIdAndColumnNameForAction} = await import(
       '../../src/helpers/github-events'
     )
-    const columnId = getColumnIdForAction(
+    const column = getColumnIdAndColumnNameForAction(
       {
         eventName: 'pull_request_review',
         eventType: 'approved',
@@ -103,13 +103,13 @@ describe('getColumnIdForAction', () => {
       validConfigJson
     )
 
-    expect(columnId).toBeUndefined()
+    expect(column?.columnId).toBeUndefined()
   })
   test('passing no branch name triggers a core.error', async () => {
-    const {getColumnIdForAction} = await import(
+    const {getColumnIdAndColumnNameForAction} = await import(
       '../../src/helpers/github-events'
     )
-    getColumnIdForAction(
+    getColumnIdAndColumnNameForAction(
       // @ts-ignore
       {
         eventName: 'pull_request_review',
@@ -123,10 +123,10 @@ describe('getColumnIdForAction', () => {
     expect(coreErrorMock).toHaveBeenCalledTimes(1)
   })
   test('passing no event name triggers a core.error', async () => {
-    const {getColumnIdForAction} = await import(
+    const {getColumnIdAndColumnNameForAction} = await import(
       '../../src/helpers/github-events'
     )
-    getColumnIdForAction(
+    getColumnIdAndColumnNameForAction(
       // @ts-ignore
       {
         eventType: 'approved'
@@ -140,10 +140,10 @@ describe('getColumnIdForAction', () => {
   })
 
   test('passing no githubActionEvent triggers a core.error', async () => {
-    const {getColumnIdForAction} = await import(
+    const {getColumnIdAndColumnNameForAction} = await import(
       '../../src/helpers/github-events'
     )
-    getColumnIdForAction(
+    getColumnIdAndColumnNameForAction(
       // @ts-ignore
       null,
       validConfigJson
@@ -475,14 +475,6 @@ describe('getBranchBasedOnEventName', () => {
       '../../src/helpers/github-events'
     )
 
-    octokit.rest.pulls.get.mockReturnValueOnce({
-      data: {
-        head: {
-          ref: undefined
-        }
-      }
-    })
-
     const branch = await getBranchBasedOnEventName('pull_request')
 
     expect(branch).toBe('')
@@ -503,8 +495,9 @@ describe('updatePRTitleWithShortcutId', () => {
   test('pull request title is updated with shortcut id', async () => {
     const title = 'My PR title'
     const shortcutId = 12345
+    const number = 12345
 
-    octokit.rest.pulls.get.mockReturnValueOnce({
+    octokit.rest.pulls.get.mockReturnValue({
       data: {
         title
       }
@@ -513,10 +506,11 @@ describe('updatePRTitleWithShortcutId', () => {
     octokit.rest.pulls.update.mockReturnValueOnce({
       status: 200
     })
+
     github.context.payload = {
       pull_request: {
-        number: 12345,
-        title: 'My PR title'
+        number,
+        title
       }
     }
 
@@ -532,12 +526,47 @@ describe('updatePRTitleWithShortcutId', () => {
     expect(coreWarningMock).toHaveBeenCalledTimes(0)
     expect(coreInfoMock).toHaveBeenCalledTimes(1)
 
-    // expect(octokit.rest.pulls.update).toHaveBeenCalledTimes(1)
-    // expect(octokit.rest.pulls.update).toHaveBeenCalledWith({
-    //   owner: 'owner',
-    //   repo: 'repo',
-    //   pull_number: 12345,
-    //   title: `${title} (#${shortcutId})`
-    // })
+    expect(octokit.rest.pulls.update).toHaveBeenCalledTimes(1)
+    expect(octokit.rest.pulls.update).toHaveBeenCalledWith({
+      owner: 'owner',
+      repo: 'repo',
+      pull_number: 12345,
+      title: `My PR title [sc-${shortcutId}]`
+    })
+  })
+  test('pull request title containing shortcut id is not updated', async () => {
+    const shortcutId = 12345
+    const title = `My PR title [sc-${shortcutId}]`
+    const number = 12345
+
+    octokit.rest.pulls.get.mockReturnValue({
+      data: {
+        title
+      }
+    })
+
+    octokit.rest.pulls.update.mockReturnValueOnce({
+      status: 404
+    })
+
+    github.context.payload = {
+      pull_request: {
+        number,
+        title
+      }
+    }
+
+    const {updatePRTitleWithShortcutId} = await import(
+      '../../src/helpers/github-events'
+    )
+
+    const coreWarningMock = jest.spyOn(core, 'warning')
+
+    await updatePRTitleWithShortcutId(shortcutId)
+
+    expect(coreWarningMock).toHaveBeenCalledTimes(0)
+
+    expect(octokit.rest.pulls.update).not.toHaveBeenCalled()
+    expect(octokit.rest.pulls.update).not.toHaveBeenCalled()
   })
 })
