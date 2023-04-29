@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "es6",
     "module": "commonjs",
-    "outDir": "./lib" /* Redirect output structure to the directory. */,
+    "outDir": "./lib",
     "rootDir": "./src",
     "strict": true,
     "noImplicitAny": true,
@@ -10,9 +10,8 @@
   },
   "exclude": [
     "node_modules",
-    "tests/**",
-    "events/**",
-    "**/*.test.ts",
-    "**/*.mock.ts"
+    "tests/**/*.test.ts",
+    "tests/**/*.mock.ts",
+    "events/**/*.ts"
   ]
 }
