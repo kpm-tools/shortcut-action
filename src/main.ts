@@ -130,8 +130,6 @@ async function run(): Promise<void> {
       }
     }
 
-    core.info(EVENT_NAME)
-
     if (EVENT_NAME === 'push') {
       const shortcutIdsFromCommits = await getShortcutIdFromPRCommits()
       if (shortcutIdsFromCommits) {
