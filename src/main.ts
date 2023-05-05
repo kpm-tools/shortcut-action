@@ -138,7 +138,7 @@ async function run(): Promise<void> {
     }
 
     const shortcut = new ShortcutClient(SHORTCUT_TOKEN)
-    if (shortcutIds) {
+    if (shortcutIds?.length > 0) {
       await Promise.all(
         shortcutIds.map(id => {
           if (id) {

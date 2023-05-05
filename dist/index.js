@@ -544,20 +544,20 @@ function run() {
                     core.info(`PR title updated with Shortcut story id ${shortcutId}`);
                 }
             }
-            let shortcutIds = null;
+            let shortcutIds = [];
             if (shortcutId) {
                 shortcutIds = [shortcutId];
             }
             if (EVENT_NAME === 'release') {
                 const shortcutIdsFromReleaseBody = yield (0, github_releases_1.getShortcutIdsFromReleaseBody)();
                 if (shortcutIdsFromReleaseBody) {
-                    shortcutIds = shortcutIdsFromReleaseBody;
+                    shortcutIds = [...shortcutIds, ...shortcutIdsFromReleaseBody];
                 }
             }
             if (EVENT_NAME === 'push') {
                 const shortcutIdsFromCommits = yield (0, github_commits_1.getShortcutIdFromPRCommits)();
                 if (shortcutIdsFromCommits) {
-                    shortcutIds = shortcutIdsFromCommits;
+                    shortcutIds = [...shortcutIds, ...shortcutIdsFromCommits];
                 }
             }
             const shortcut = new client_1.ShortcutClient(SHORTCUT_TOKEN);
