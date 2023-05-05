@@ -40,6 +40,8 @@ export const getShortcutIdFromPRCommits = async (): Promise<
   const repo = github.context.repo.repo
   const commit_sha = github.context.sha
 
+  core.info(commit_sha)
+
   const prsInCommit = await octokit.request(
     `GET /repos/${owner}/${repo}/commits/${commit_sha}/pulls`,
     {
@@ -51,6 +53,8 @@ export const getShortcutIdFromPRCommits = async (): Promise<
       }
     }
   )
+
+  core.info(JSON.stringify(prsInCommit.data))
 
   const commitsInPrs = await Promise.all(
     prsInCommit.data.map(async ({number}: {number: number}) => {
@@ -68,6 +72,8 @@ export const getShortcutIdFromPRCommits = async (): Promise<
     })
   )
 
+  core.info(JSON.stringify(commitsInPrs))
+
   const commitMessage = commitsInPrs.map(
     ({data}: {data: {commit: {message: string}}[]}) => {
       return data.map(
@@ -76,9 +82,13 @@ export const getShortcutIdFromPRCommits = async (): Promise<
     }
   )
 
+  core.info(JSON.stringify(commitMessage))
+
   const rawShortcutIds = commitMessage.map((message: string[]) => {
     return message.map((msg: string) => extractStoryIdFromString(msg))
   })
+
+  core.info(JSON.stringify(rawShortcutIds))
 
   if (rawShortcutIds.length === 0) return undefined
   const flattenedShortcutIds = rawShortcutIds.flat()
