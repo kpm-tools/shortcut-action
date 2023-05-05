@@ -39,9 +39,21 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getShortcutIdMessageFromSha = void 0;
+exports.getShortcutIdFromPRCommits = exports.getShortcutIdMessageFromSha = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
+const extractStoryIdFromString = (str) => {
+    const regex = /\[sc-(\d+)\]/;
+    const match = str.match(regex);
+    if (match) {
+        const numberString = match[1];
+        const number = parseInt(numberString, 10);
+        return number;
+    }
+    else {
+        return null;
+    }
+};
 const getShortcutIdMessageFromSha = (sha) => __awaiter(void 0, void 0, void 0, function* () {
     const token = core.getInput('GITHUB_TOKEN');
     const octokit = github.getOctokit(token);
@@ -50,22 +62,52 @@ const getShortcutIdMessageFromSha = (sha) => __awaiter(void 0, void 0, void 0, f
         repo: github.context.repo.repo,
         ref: sha
     });
-    const extractStoryIdFromString = (str) => {
-        const regex = /\[sc-(\d+)\]/;
-        const match = str.match(regex);
-        if (match) {
-            const numberString = match[1];
-            const number = parseInt(numberString, 10);
-            return number;
-        }
-        else {
-            return null;
-        }
-    };
     const shortcutId = extractStoryIdFromString(response.data.commit.message);
     return shortcutId;
 });
 exports.getShortcutIdMessageFromSha = getShortcutIdMessageFromSha;
+const getShortcutIdFromPRCommits = () => __awaiter(void 0, void 0, void 0, function* () {
+    const token = core.getInput('GITHUB_TOKEN');
+    const octokit = github.getOctokit(token);
+    const owner = github.context.repo.owner;
+    const repo = github.context.repo.repo;
+    const commit_sha = github.context.sha;
+    core.info(commit_sha);
+    const prsInCommit = yield octokit.request(`GET /repos/${owner}/${repo}/commits/${commit_sha}/pulls`, {
+        owner,
+        repo,
+        commit_sha,
+        headers: {
+            'X-GitHub-Api-Version': '2022-11-28'
+        }
+    });
+    core.info(JSON.stringify(prsInCommit.data));
+    const commitsInPrs = yield Promise.all(prsInCommit.data.map(({ number }) => __awaiter(void 0, void 0, void 0, function* () {
+        return octokit.request(`GET /repos/${owner}/${repo}/pulls/${number}/commits`, {
+            owner,
+            repo,
+            pull_number: number,
+            headers: {
+                'X-GitHub-Api-Version': '2022-11-28'
+            }
+        });
+    })));
+    core.info(JSON.stringify(commitsInPrs));
+    const commitMessage = commitsInPrs.map(({ data }) => {
+        return data.map((commit) => commit.commit.message);
+    });
+    core.info(JSON.stringify(commitMessage));
+    const rawShortcutIds = commitMessage.map((message) => {
+        return message.map((msg) => extractStoryIdFromString(msg));
+    });
+    core.info(JSON.stringify(rawShortcutIds));
+    if (rawShortcutIds.length === 0)
+        return undefined;
+    const flattenedShortcutIds = rawShortcutIds.flat();
+    const shortcutIds = flattenedShortcutIds.filter(id => id !== null);
+    return shortcutIds;
+});
+exports.getShortcutIdFromPRCommits = getShortcutIdFromPRCommits;
 
 
 /***/ }),
@@ -517,6 +559,13 @@ function run() {
                     shortcutIds = shortcutIdsFromReleaseBody;
                 }
             }
+            core.info(`EVENT NAME HERE ${EVENT_NAME}`);
+            if (EVENT_NAME === 'push') {
+                const shortcutIdsFromCommits = yield (0, github_commits_1.getShortcutIdFromPRCommits)();
+                if (shortcutIdsFromCommits) {
+                    shortcutIds = shortcutIdsFromCommits;
+                }
+            }
             const shortcut = new client_1.ShortcutClient(SHORTCUT_TOKEN);
             if (shortcutIds) {
                 yield Promise.all(shortcutIds.map(id => {
@@ -524,7 +573,7 @@ function run() {
                         shortcut.updateStory(id, {
                             workflow_state_id: column === null || column === void 0 ? void 0 : column.columnId
                         });
-                        core.info(`Shortcut story ${id} updated, to ${(column === null || column === void 0 ? void 0 : column.columnName) || (column === null || column === void 0 ? void 0 : column.columnId)}`);
+                        core.info(`Shortcut story ${id} updated, to ${(column === null || column === void 0 ? void 0 : column.columnName) || (column === null || column === void 0 ? void 0 : column.columnId)} ${column === null || column === void 0 ? void 0 : column.columnId}`);
                     }
                 }));
                 return;
