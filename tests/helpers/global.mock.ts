@@ -10,7 +10,8 @@ export const octokit = {
       get: jest.fn(),
       update: jest.fn()
     }
-  }
+  },
+  request: jest.fn()
 }
 
 export const getOctokit = jest.fn().mockImplementation(() => octokit)

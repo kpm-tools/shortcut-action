@@ -12,7 +12,10 @@ import {
   updatePRTitleWithShortcutId
 } from './helpers/github-events'
 
-import {getShortcutIdMessageFromSha} from './helpers/github-commits'
+import {
+  getShortcutIdMessageFromSha,
+  getShortcutIdFromPRCommits
+} from './helpers/github-commits'
 import {getShortcutIdsFromReleaseBody} from './helpers/github-releases'
 
 import {
@@ -124,6 +127,13 @@ async function run(): Promise<void> {
       const shortcutIdsFromReleaseBody = await getShortcutIdsFromReleaseBody()
       if (shortcutIdsFromReleaseBody) {
         shortcutIds = shortcutIdsFromReleaseBody
+      }
+    }
+
+    if (EVENT_NAME === 'push') {
+      const shortcutIdsFromCommits = await getShortcutIdFromPRCommits()
+      if (shortcutIdsFromCommits) {
+        shortcutIds = shortcutIdsFromCommits
       }
     }
 
