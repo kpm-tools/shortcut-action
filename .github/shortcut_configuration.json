@@ -3,8 +3,7 @@
     {
       "events": [
         {
-          "eventName": "release",
-          "eventType": "published"
+          "eventName": "test/commit-on-push-testing"
         }
       ],
       "branches": ["main"],
