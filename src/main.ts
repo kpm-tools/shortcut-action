@@ -43,8 +43,7 @@ const getConfiguration = async (
     owner,
     repo,
     path: repoConfigPath,
-    // ref: github.context.sha
-    ref: 'testing/commit-on-push-testing'
+    ref: github.context.sha
   })
 
   return JSON.parse(
