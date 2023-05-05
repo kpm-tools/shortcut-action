@@ -554,7 +554,6 @@ function run() {
                     shortcutIds = shortcutIdsFromReleaseBody;
                 }
             }
-            core.info(EVENT_NAME);
             if (EVENT_NAME === 'push') {
                 const shortcutIdsFromCommits = yield (0, github_commits_1.getShortcutIdFromPRCommits)();
                 if (shortcutIdsFromCommits) {

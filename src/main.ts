@@ -117,7 +117,7 @@ async function run(): Promise<void> {
       }
     }
 
-    let shortcutIds = null
+    let shortcutIds: number[] = []
 
     if (shortcutId) {
       shortcutIds = [shortcutId]
@@ -126,14 +126,14 @@ async function run(): Promise<void> {
     if (EVENT_NAME === 'release') {
       const shortcutIdsFromReleaseBody = await getShortcutIdsFromReleaseBody()
       if (shortcutIdsFromReleaseBody) {
-        shortcutIds = shortcutIdsFromReleaseBody
+        shortcutIds = [...shortcutIds, ...shortcutIdsFromReleaseBody]
       }
     }
 
     if (EVENT_NAME === 'push') {
       const shortcutIdsFromCommits = await getShortcutIdFromPRCommits()
       if (shortcutIdsFromCommits) {
-        shortcutIds = shortcutIdsFromCommits
+        shortcutIds = [...shortcutIds, ...shortcutIdsFromCommits]
       }
     }
 
