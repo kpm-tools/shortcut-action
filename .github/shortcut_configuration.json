@@ -6,7 +6,7 @@
           "eventName": "push"
         }
       ],
-      "branches": ["main", "testing/commit-on-push-testing"],
+      "branches": ["main"],
       "columnId": "500000011",
       "columnName": "Released"
     },

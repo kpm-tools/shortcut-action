@@ -72,7 +72,6 @@ const getShortcutIdFromPRCommits = () => __awaiter(void 0, void 0, void 0, funct
     const owner = github.context.repo.owner;
     const repo = github.context.repo.repo;
     const commit_sha = github.context.sha;
-    core.info(commit_sha);
     const prsInCommit = yield octokit.request(`GET /repos/${owner}/${repo}/commits/${commit_sha}/pulls`, {
         owner,
         repo,
@@ -81,7 +80,6 @@ const getShortcutIdFromPRCommits = () => __awaiter(void 0, void 0, void 0, funct
             'X-GitHub-Api-Version': '2022-11-28'
         }
     });
-    core.info(JSON.stringify(prsInCommit.data));
     const commitsInPrs = yield Promise.all(prsInCommit.data.map(({ number }) => __awaiter(void 0, void 0, void 0, function* () {
         return octokit.request(`GET /repos/${owner}/${repo}/pulls/${number}/commits`, {
             owner,
@@ -92,15 +90,12 @@ const getShortcutIdFromPRCommits = () => __awaiter(void 0, void 0, void 0, funct
             }
         });
     })));
-    core.info(JSON.stringify(commitsInPrs));
     const commitMessage = commitsInPrs.map(({ data }) => {
         return data.map((commit) => commit.commit.message);
     });
-    core.info(JSON.stringify(commitMessage));
     const rawShortcutIds = commitMessage.map((message) => {
         return message.map((msg) => extractStoryIdFromString(msg));
     });
-    core.info(JSON.stringify(rawShortcutIds));
     if (rawShortcutIds.length === 0)
         return undefined;
     const flattenedShortcutIds = rawShortcutIds.flat();
@@ -559,7 +554,7 @@ function run() {
                     shortcutIds = shortcutIdsFromReleaseBody;
                 }
             }
-            core.info(`EVENT NAME HERE ${EVENT_NAME}`);
+            core.info(EVENT_NAME);
             if (EVENT_NAME === 'push') {
                 const shortcutIdsFromCommits = yield (0, github_commits_1.getShortcutIdFromPRCommits)();
                 if (shortcutIdsFromCommits) {
