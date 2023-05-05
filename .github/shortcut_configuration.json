@@ -3,11 +3,10 @@
     {
       "events": [
         {
-          "eventName": "release",
-          "eventType": "published"
+          "eventName": "push"
         }
       ],
-      "branches": ["main"],
+      "branches": ["main", "testing/commit-on-push-testing"],
       "columnId": "500000011",
       "columnName": "Released"
     },

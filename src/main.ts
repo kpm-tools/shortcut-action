@@ -150,7 +150,7 @@ async function run(): Promise<void> {
             core.info(
               `Shortcut story ${id} updated, to ${
                 column?.columnName || column?.columnId
-              }`
+              } ${column?.columnId}`
             )
           }
         })
