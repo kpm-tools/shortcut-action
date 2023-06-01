@@ -29,7 +29,7 @@
     "@actions/core": "^1.10.0",
     "@actions/github": "^5.1.1",
     "@useshortcut/client": "^1.0.0",
-    "dotenv": "^16.0.3",
+    "dotenv": "^16.1.3",
     "zod": "^3.21.4"
   },
   "devDependencies": {
